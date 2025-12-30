@@ -351,7 +351,7 @@
         price: 0.85,
         edition: "01/50"
       }
-    };
+    };  // END DEFAULT_CONFIG
 
     // Liquid Background Component
     const LiquidBackground = () => (
@@ -631,6 +631,7 @@
       const [isAuthenticated, setIsAuthenticated] = useState(false);
       const [selectedElement, setSelectedElement] = useState(null);
       const [toolbarPosition, setToolbarPosition] = useState({ x: 0, y: 0 });
+      const [isExportModalOpen, setIsExportModalOpen] = useState(false);
 
       useEffect(() => {
         const saved = localStorage.getItem('acid_config_v2');
@@ -685,6 +686,53 @@
         alert('設定已儲存！');
       };
 
+      const generateExportCode = () => {
+        const formatElement = (el) => {
+          let code = '{\n';
+          code += `          en: "${el.en}",\n`;
+          code += `          zh: "${el.zh}",\n`;
+          code += `          fontSize: ${el.fontSize},\n`;
+          code += `          fontFamily: '${el.fontFamily}',\n`;
+          code += `          fontFamilyZh: '${el.fontFamilyZh}',\n`;
+          code += `          color: "${el.color}",\n`;
+          if (el.bgColor) code += `          bgColor: "${el.bgColor}",\n`;
+          code += `          offsetX: ${el.offsetX},\n`;
+          code += `          offsetY: ${el.offsetY},\n`;
+          code += `          textEffect: '${el.textEffect}'\n`;
+          code += '        }';
+          return code;
+        };
+
+        let code = `    const DEFAULT_CONFIG = {\n`;
+        code += `      elements: {\n`;
+
+        Object.keys(config.elements).forEach((key, index, arr) => {
+          code += `        ${key}: ${formatElement(config.elements[key])}`;
+          code += index < arr.length - 1 ? ',\n' : '\n';
+        });
+
+        code += `      },\n`;
+        code += `      layout: {\n`;
+        code += `        mediaUrl: "${config.layout.mediaUrl}",\n`;
+        code += `        isMediaVideo: ${config.layout.isMediaVideo}\n`;
+        code += `      },\n`;
+        code += `      artwork: {\n`;
+        code += `        price: ${config.artwork.price},\n`;
+        code += `        edition: "${config.artwork.edition}"\n`;
+        code += `      }\n`;
+        code += `    };  // END DEFAULT_CONFIG`;
+
+        return code;
+      };
+
+      const copyToClipboard = (text) => {
+        navigator.clipboard.writeText(text).then(() => {
+          alert('代碼已複製到剪貼簿！');
+        }).catch(() => {
+          alert('複製失敗，請手動選取複製');
+        });
+      };
+
       const exitEditMode = () => {
         setIsEditMode(false);
         setSelectedElement(null);
@@ -710,6 +758,12 @@
                 className="px-4 py-1 bg-white text-purple-600 rounded text-xs font-bold hover:bg-gray-100"
               >
                 儲存變更
+              </button>
+              <button
+                onClick={() => setIsExportModalOpen(true)}
+                className="px-4 py-1 bg-green-500 text-white rounded text-xs font-bold hover:bg-green-600"
+              >
+                匯出代碼
               </button>
               <button
                 onClick={exitEditMode}
@@ -1085,6 +1139,59 @@
                   >進入</button>
                 </div>
               </form>
+            </div>
+          )}
+
+          {/* Export Code Modal */}
+          {isExportModalOpen && (
+            <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/95 backdrop-blur-sm" onClick={() => setIsExportModalOpen(false)}>
+              <div className="glass-morphism p-6 w-[90%] max-w-4xl max-h-[90vh] overflow-hidden flex flex-col" onClick={e => e.stopPropagation()}>
+                <div className="flex justify-between items-center mb-4 pb-4 border-b border-zinc-700">
+                  <h3 className="display-font text-sm tracking-[0.2em] uppercase text-green-400">匯出設定代碼</h3>
+                  <button onClick={() => setIsExportModalOpen(false)} className="text-zinc-500 hover:text-white text-2xl leading-none">&times;</button>
+                </div>
+
+                <div className="bg-yellow-900/30 border border-yellow-600/50 rounded p-4 mb-4">
+                  <h4 className="text-yellow-400 text-sm font-bold mb-2">使用說明</h4>
+                  <ol className="text-yellow-200/80 text-xs space-y-1 list-decimal list-inside">
+                    <li>點擊下方「複製代碼」按鈕複製設定</li>
+                    <li>打開本地的 <code className="bg-black/50 px-1 rounded">index.html</code> 文件</li>
+                    <li>搜尋 <code className="bg-black/50 px-1 rounded">const DEFAULT_CONFIG = {'{'}</code></li>
+                    <li>選取從 <code className="bg-black/50 px-1 rounded">const DEFAULT_CONFIG = {'{'}</code> 到 <code className="bg-black/50 px-1 rounded">{'}'};  // END DEFAULT_CONFIG</code> 的整段代碼</li>
+                    <li>用複製的代碼取代選取的部分</li>
+                    <li>儲存文件並推送到 GitHub</li>
+                  </ol>
+                </div>
+
+                <div className="flex gap-2 mb-4">
+                  <button
+                    onClick={() => copyToClipboard(generateExportCode())}
+                    className="px-6 py-2 bg-green-600 text-white rounded text-sm font-bold hover:bg-green-700 flex items-center gap-2"
+                  >
+                    <span>&#128203;</span> 複製代碼
+                  </button>
+                  <button
+                    onClick={() => {
+                      const blob = new Blob([generateExportCode()], { type: 'text/javascript' });
+                      const url = URL.createObjectURL(blob);
+                      const a = document.createElement('a');
+                      a.href = url;
+                      a.download = 'config-export.js';
+                      a.click();
+                      URL.revokeObjectURL(url);
+                    }}
+                    className="px-6 py-2 bg-blue-600 text-white rounded text-sm font-bold hover:bg-blue-700 flex items-center gap-2"
+                  >
+                    <span>&#128190;</span> 下載檔案
+                  </button>
+                </div>
+
+                <div className="flex-1 overflow-auto bg-black/60 rounded border border-zinc-700">
+                  <pre className="p-4 text-xs text-green-300 font-mono whitespace-pre overflow-x-auto">
+                    {generateExportCode()}
+                  </pre>
+                </div>
+              </div>
             </div>
           )}
 
