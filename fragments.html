@@ -1,0 +1,538 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fragments | Acid Metal Art Collective</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@3/dist/email.min.js"></script>
+  <style>
+    body {
+      background-color: #050505;
+      color: #fff;
+      overflow-x: hidden;
+      font-family: 'Space Mono', monospace;
+    }
+    .acid-font { font-family: 'Syncopate', sans-serif; }
+    .display-font { font-family: 'Orbitron', sans-serif; }
+
+    .glass-morphism {
+      background: rgba(255, 255, 255, 0.03);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    ::-webkit-scrollbar { width: 4px; }
+    ::-webkit-scrollbar-track { background: #000; }
+    ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
+
+    .artwork-card {
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .artwork-card:hover {
+      transform: translateY(-8px);
+    }
+    .artwork-card:hover .artwork-image {
+      filter: grayscale(0);
+    }
+    .artwork-image {
+      filter: grayscale(0.5);
+      transition: filter 0.4s ease;
+    }
+
+    .thumbnail {
+      transition: all 0.3s ease;
+      opacity: 0.6;
+    }
+    .thumbnail:hover, .thumbnail.active {
+      opacity: 1;
+      border-color: #FF00F5;
+    }
+
+    @keyframes float {
+      0% { transform: translate(0, 0) scale(1); }
+      33% { transform: translate(30px, -50px) scale(1.1); }
+      66% { transform: translate(-20px, 20px) scale(0.9); }
+      100% { transform: translate(0, 0) scale(1); }
+    }
+
+    .blob {
+      position: absolute;
+      background: linear-gradient(135deg, #FF00F5 0%, #a1a1a1 50%, #4a4a4a 100%);
+      border-radius: 50%;
+      mix-blend-mode: exclusion;
+      animation: float 10s infinite ease-in-out;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <script type="text/babel" data-presets="react">
+    const { useState, useEffect, useRef } = React;
+
+    // Sample Fragments Data - Replace with your actual data
+    const FRAGMENTS = [
+      {
+        id: 'fragment-001',
+        title: 'SHARD_ALPHA',
+        titleZh: '碎片_阿爾法',
+        description: 'A fractured piece of the digital void. Limited edition print series.',
+        descriptionZh: '數位虛空的碎片。限量版印刷系列。',
+        price: 0.25,
+        edition: '01/50',
+        images: [
+          'https://picsum.photos/seed/frag1-1/800/800',
+          'https://picsum.photos/seed/frag1-2/800/800',
+          'https://picsum.photos/seed/frag1-3/800/800'
+        ]
+      },
+      {
+        id: 'fragment-002',
+        title: 'SHARD_BETA',
+        titleZh: '碎片_貝塔',
+        description: 'Crystallized moments from the neural stream.',
+        descriptionZh: '來自神經流的結晶時刻。',
+        price: 0.30,
+        edition: '01/30',
+        images: [
+          'https://picsum.photos/seed/frag2-1/800/800',
+          'https://picsum.photos/seed/frag2-2/800/800'
+        ]
+      },
+      {
+        id: 'fragment-003',
+        title: 'SHARD_GAMMA',
+        titleZh: '碎片_伽瑪',
+        description: 'Echoes of light trapped in digital amber.',
+        descriptionZh: '困在數位琥珀中的光之回響。',
+        price: 0.35,
+        edition: '01/25',
+        images: [
+          'https://picsum.photos/seed/frag3-1/800/800',
+          'https://picsum.photos/seed/frag3-2/800/800',
+          'https://picsum.photos/seed/frag3-3/800/800',
+          'https://picsum.photos/seed/frag3-4/800/800'
+        ]
+      },
+      {
+        id: 'fragment-004',
+        title: 'SHARD_DELTA',
+        titleZh: '碎片_德爾塔',
+        description: 'The edge of perception, rendered in pixels.',
+        descriptionZh: '感知的邊緣，以像素呈現。',
+        price: 0.20,
+        edition: '01/100',
+        images: [
+          'https://picsum.photos/seed/frag4-1/800/800',
+          'https://picsum.photos/seed/frag4-2/800/800'
+        ]
+      },
+      {
+        id: 'fragment-005',
+        title: 'SHARD_EPSILON',
+        titleZh: '碎片_伊普西隆',
+        description: 'Whispers from the machine consciousness.',
+        descriptionZh: '來自機器意識的低語。',
+        price: 0.40,
+        edition: '01/15',
+        images: [
+          'https://picsum.photos/seed/frag5-1/800/800',
+          'https://picsum.photos/seed/frag5-2/800/800',
+          'https://picsum.photos/seed/frag5-3/800/800'
+        ]
+      },
+      {
+        id: 'fragment-006',
+        title: 'SHARD_ZETA',
+        titleZh: '碎片_澤塔',
+        description: 'Fragments of a forgotten algorithm.',
+        descriptionZh: '被遺忘算法的碎片。',
+        price: 0.28,
+        edition: '01/40',
+        images: [
+          'https://picsum.photos/seed/frag6-1/800/800',
+          'https://picsum.photos/seed/frag6-2/800/800'
+        ]
+      }
+    ];
+
+    // Background Component
+    const LiquidBackground = () => (
+      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-black opacity-90"></div>
+        <div className="w-full h-full relative opacity-30">
+          <div className="blob w-[400px] h-[400px] top-[10%] left-[10%] blur-xl"></div>
+          <div className="blob w-[500px] h-[500px] top-[40%] left-[50%] blur-2xl" style={{ animationDelay: '-2s' }}></div>
+          <div className="blob w-[350px] h-[350px] bottom-[10%] right-[20%] blur-xl" style={{ animationDelay: '-5s' }}></div>
+        </div>
+      </div>
+    );
+
+    // Artwork Card Component
+    const ArtworkCard = ({ artwork, lang, onClick }) => (
+      <div
+        className="artwork-card cursor-pointer group"
+        onClick={() => onClick(artwork)}
+      >
+        <div className="relative aspect-square overflow-hidden glass-morphism mb-4">
+          <img
+            src={artwork.images[0]}
+            alt={lang === 'zh' ? artwork.titleZh : artwork.title}
+            className="artwork-image w-full h-full object-cover"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+          <div className="absolute bottom-4 left-4 right-4 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+            <div className="text-[10px] text-zinc-400 uppercase tracking-widest mb-1">
+              {lang === 'zh' ? '點擊查看詳情' : 'Click to view details'}
+            </div>
+          </div>
+        </div>
+        <h3 className="acid-font text-lg font-bold mb-2 group-hover:text-[#FF00F5] transition-colors">
+          {lang === 'zh' ? artwork.titleZh : artwork.title}
+        </h3>
+        <p className="text-xs text-zinc-500 mb-3 line-clamp-2">
+          {lang === 'zh' ? artwork.descriptionZh : artwork.description}
+        </p>
+        <div className="flex justify-between items-center">
+          <span className="display-font text-sm font-bold">{artwork.price} ETH</span>
+          <span className="text-[10px] text-zinc-600 uppercase tracking-widest">{artwork.edition}</span>
+        </div>
+      </div>
+    );
+
+    // Product Detail Modal
+    const ProductDetail = ({ artwork, lang, onClose }) => {
+      const [currentImage, setCurrentImage] = useState(0);
+      const [isTransitioning, setIsTransitioning] = useState(false);
+      const [formData, setFormData] = useState({
+        name: '',
+        email: '',
+        address: '',
+        city: '',
+        country: '',
+        phone: '',
+        notes: ''
+      });
+      const [isSubmitting, setIsSubmitting] = useState(false);
+      const [submitStatus, setSubmitStatus] = useState(null);
+
+      const handleImageChange = (index) => {
+        if (index === currentImage) return;
+        setIsTransitioning(true);
+        setTimeout(() => {
+          setCurrentImage(index);
+          setIsTransitioning(false);
+        }, 300);
+      };
+
+      const handleInputChange = (e) => {
+        setFormData({ ...formData, [e.target.name]: e.target.value });
+      };
+
+      const handleSubmit = async (e) => {
+        e.preventDefault();
+        setIsSubmitting(true);
+        setSubmitStatus(null);
+
+        try {
+          // Simulate API call - In production, use EmailJS
+          await new Promise(resolve => setTimeout(resolve, 1500));
+          setSubmitStatus('success');
+          setFormData({ name: '', email: '', address: '', city: '', country: '', phone: '', notes: '' });
+        } catch (error) {
+          setSubmitStatus('error');
+        } finally {
+          setIsSubmitting(false);
+        }
+      };
+
+      return (
+        <div className="fixed inset-0 z-[100] bg-black/95 backdrop-blur-md overflow-y-auto">
+          <button
+            onClick={onClose}
+            className="fixed top-6 right-6 z-[101] w-12 h-12 flex items-center justify-center text-2xl text-zinc-400 hover:text-white transition-colors glass-morphism rounded-full"
+          >
+            ×
+          </button>
+
+          <div className="container mx-auto px-6 py-20">
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
+              {/* Left: Images */}
+              <div>
+                <div className="relative aspect-square glass-morphism overflow-hidden mb-4">
+                  <img
+                    src={artwork.images[currentImage]}
+                    alt={lang === 'zh' ? artwork.titleZh : artwork.title}
+                    className={`w-full h-full object-cover transition-opacity duration-300 ${isTransitioning ? 'opacity-0' : 'opacity-100'}`}
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  {artwork.images.map((img, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleImageChange(idx)}
+                      className={`thumbnail flex-1 aspect-square overflow-hidden border-2 ${currentImage === idx ? 'active border-[#FF00F5]' : 'border-zinc-800'}`}
+                    >
+                      <img src={img} alt={`Detail ${idx + 1}`} className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Right: Info & Purchase Form */}
+              <div>
+                <div className="text-[10px] text-zinc-500 uppercase tracking-[0.3em] mb-2">
+                  {lang === 'zh' ? '碎片詳情' : 'Fragment Details'}
+                </div>
+                <h1 className="acid-font text-3xl md:text-5xl font-black mb-4" style={{ color: '#FF00F5' }}>
+                  {lang === 'zh' ? artwork.titleZh : artwork.title}
+                </h1>
+                <p className="text-zinc-400 mb-8 leading-relaxed">
+                  {lang === 'zh' ? artwork.descriptionZh : artwork.description}
+                </p>
+
+                <div className="flex gap-8 mb-8 py-6 border-y border-zinc-800">
+                  <div>
+                    <div className="text-[9px] text-zinc-600 uppercase tracking-widest mb-1">
+                      {lang === 'zh' ? '價格' : 'Price'}
+                    </div>
+                    <div className="display-font text-2xl font-black">{artwork.price} ETH</div>
+                  </div>
+                  <div>
+                    <div className="text-[9px] text-zinc-600 uppercase tracking-widest mb-1">
+                      {lang === 'zh' ? '版本' : 'Edition'}
+                    </div>
+                    <div className="display-font text-2xl font-black">{artwork.edition}</div>
+                  </div>
+                </div>
+
+                {/* Purchase Form */}
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="text-[10px] text-zinc-500 uppercase tracking-[0.2em] mb-4">
+                    {lang === 'zh' ? '購買資訊' : 'Purchase Information'}
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1">
+                        {lang === 'zh' ? '姓名' : 'Name'} *
+                      </label>
+                      <input
+                        type="text"
+                        name="name"
+                        required
+                        value={formData.name}
+                        onChange={handleInputChange}
+                        className="w-full bg-black/50 border border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#FF00F5] transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1">
+                        {lang === 'zh' ? '電子郵件' : 'Email'} *
+                      </label>
+                      <input
+                        type="email"
+                        name="email"
+                        required
+                        value={formData.email}
+                        onChange={handleInputChange}
+                        className="w-full bg-black/50 border border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#FF00F5] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1">
+                      {lang === 'zh' ? '地址' : 'Address'} *
+                    </label>
+                    <input
+                      type="text"
+                      name="address"
+                      required
+                      value={formData.address}
+                      onChange={handleInputChange}
+                      className="w-full bg-black/50 border border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#FF00F5] transition-colors"
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1">
+                        {lang === 'zh' ? '城市' : 'City'} *
+                      </label>
+                      <input
+                        type="text"
+                        name="city"
+                        required
+                        value={formData.city}
+                        onChange={handleInputChange}
+                        className="w-full bg-black/50 border border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#FF00F5] transition-colors"
+                      />
+                    </div>
+                    <div>
+                      <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1">
+                        {lang === 'zh' ? '國家' : 'Country'} *
+                      </label>
+                      <input
+                        type="text"
+                        name="country"
+                        required
+                        value={formData.country}
+                        onChange={handleInputChange}
+                        className="w-full bg-black/50 border border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#FF00F5] transition-colors"
+                      />
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1">
+                      {lang === 'zh' ? '電話' : 'Phone'}
+                    </label>
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={formData.phone}
+                      onChange={handleInputChange}
+                      className="w-full bg-black/50 border border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#FF00F5] transition-colors"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="text-[9px] text-zinc-600 uppercase tracking-widest block mb-1">
+                      {lang === 'zh' ? '備註' : 'Notes'}
+                    </label>
+                    <textarea
+                      name="notes"
+                      rows={3}
+                      value={formData.notes}
+                      onChange={handleInputChange}
+                      className="w-full bg-black/50 border border-zinc-800 p-3 text-sm focus:outline-none focus:border-[#FF00F5] transition-colors resize-none"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className="w-full py-5 bg-[#FF00F5] text-white font-black uppercase tracking-[0.3em] text-sm hover:bg-white hover:text-black transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    {isSubmitting
+                      ? (lang === 'zh' ? '提交中...' : 'Submitting...')
+                      : (lang === 'zh' ? '確認購買' : 'Confirm Purchase')}
+                  </button>
+
+                  {submitStatus === 'success' && (
+                    <div className="p-4 bg-green-900/30 border border-green-600/50 text-green-400 text-sm text-center">
+                      {lang === 'zh'
+                        ? '訂單已提交！我們會盡快與您聯繫。'
+                        : 'Order submitted! We will contact you soon.'}
+                    </div>
+                  )}
+
+                  {submitStatus === 'error' && (
+                    <div className="p-4 bg-red-900/30 border border-red-600/50 text-red-400 text-sm text-center">
+                      {lang === 'zh'
+                        ? '提交失敗，請稍後再試或直接聯繫我們。'
+                        : 'Submission failed. Please try again or contact us directly.'}
+                    </div>
+                  )}
+
+                  <p className="text-[8px] text-center text-zinc-600 uppercase tracking-widest">
+                    {lang === 'zh'
+                      ? '提交後我們會通過郵件與您確認訂單詳情'
+                      : 'We will confirm order details via email after submission'}
+                  </p>
+                </form>
+              </div>
+            </div>
+          </div>
+        </div>
+      );
+    };
+
+    // Main App
+    const App = () => {
+      const [lang, setLang] = useState('en');
+      const [selectedArtwork, setSelectedArtwork] = useState(null);
+
+      return (
+        <div className="relative min-h-screen">
+          <LiquidBackground />
+
+          {/* Language Switcher */}
+          <div className="fixed top-8 right-8 z-40">
+            <button
+              onClick={() => setLang(l => l === 'en' ? 'zh' : 'en')}
+              className="glass-morphism px-3 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all border border-white/20"
+            >
+              {lang === 'en' ? 'ZH' : 'EN'}
+            </button>
+          </div>
+
+          <main className="relative z-10 container mx-auto px-6 py-12">
+            {/* Header */}
+            <nav className="flex justify-between items-center mb-16">
+              <a href="index.html" className="display-font text-sm font-black italic tracking-tighter opacity-80 hover:opacity-100 transition-opacity">
+                ← {lang === 'zh' ? '返回首頁' : 'Back to Home'}
+              </a>
+              <div className="flex gap-8 text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500">
+                <a href="archive.html" className="hover:text-white transition-colors">Archive</a>
+                <span className="text-white">Fragments</span>
+              </div>
+            </nav>
+
+            {/* Page Title */}
+            <div className="text-center mb-16">
+              <h1 className="acid-font text-4xl md:text-6xl font-black mb-4" style={{ color: '#FF00F5' }}>
+                {lang === 'zh' ? '碎片系列' : 'FRAGMENTS'}
+              </h1>
+              <p className="text-zinc-500 text-sm max-w-xl mx-auto">
+                {lang === 'zh'
+                  ? '小型限量作品。完美適合開始您的數位藝術收藏。'
+                  : 'Small-scale limited editions. Perfect for starting your digital art collection.'}
+              </p>
+            </div>
+
+            {/* Artworks Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8">
+              {FRAGMENTS.map(artwork => (
+                <ArtworkCard
+                  key={artwork.id}
+                  artwork={artwork}
+                  lang={lang}
+                  onClick={setSelectedArtwork}
+                />
+              ))}
+            </div>
+
+            {/* Footer */}
+            <footer className="mt-24 pt-12 border-t border-zinc-900 text-center opacity-40">
+              <div className="display-font text-xs">ACID_LABS © 2024</div>
+            </footer>
+          </main>
+
+          {/* Product Detail Modal */}
+          {selectedArtwork && (
+            <ProductDetail
+              artwork={selectedArtwork}
+              lang={lang}
+              onClose={() => setSelectedArtwork(null)}
+            />
+          )}
+        </div>
+      );
+    };
+
+    const root = ReactDOM.createRoot(document.getElementById('root'));
+    root.render(<App />);
+  </script>
+</body>
+</html>

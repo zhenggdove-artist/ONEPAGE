@@ -179,13 +179,16 @@
     const YouTubePlayer = ({ videoId, scale, offsetX, offsetY, isEditMode }) => {
       const containerRef = useRef(null);
       const playerRef = useRef(null);
+      const timerRef = useRef(null);
       const playerIdRef = useRef(`yt-player-${Math.random().toString(36).substr(2, 9)}`);
 
       useEffect(() => {
         if (!videoId) return;
 
+        let checkInterval = null;
+
         const initPlayer = () => {
-          if (playerRef.current) {
+          if (playerRef.current && playerRef.current.destroy) {
             playerRef.current.destroy();
           }
 
@@ -202,19 +205,42 @@
               disablekb: 1,
               fs: 0,
               playsinline: 1,
-              loop: 1,
-              playlist: videoId
+              enablejsapi: 1,
+              origin: window.location.origin
             },
             events: {
               onReady: (event) => {
                 event.target.playVideo();
+                // Start checking time to restart before video ends
+                checkInterval = setInterval(() => {
+                  if (playerRef.current && playerRef.current.getCurrentTime && playerRef.current.getDuration) {
+                    const currentTime = playerRef.current.getCurrentTime();
+                    const duration = playerRef.current.getDuration();
+                    // Restart 0.5 seconds before end to avoid black screen
+                    if (duration > 0 && currentTime > 0 && (duration - currentTime) < 0.5) {
+                      playerRef.current.seekTo(0, true);
+                    }
+                  }
+                }, 100);
               },
               onStateChange: (event) => {
-                // When video ends (state 0), immediately restart
+                // Backup: if video somehow ends, restart immediately
                 if (event.data === window.YT.PlayerState.ENDED) {
-                  event.target.seekTo(0);
+                  event.target.seekTo(0, true);
                   event.target.playVideo();
                 }
+                // If paused unexpectedly, resume
+                if (event.data === window.YT.PlayerState.PAUSED) {
+                  setTimeout(() => {
+                    if (playerRef.current && playerRef.current.getPlayerState &&
+                        playerRef.current.getPlayerState() === window.YT.PlayerState.PAUSED) {
+                      playerRef.current.playVideo();
+                    }
+                  }, 100);
+                }
+              },
+              onError: (event) => {
+                console.log('YouTube Player Error:', event.data);
               }
             }
           });
@@ -222,15 +248,22 @@
 
         // Check if YouTube API is ready
         if (window.YT && window.YT.Player) {
-          initPlayer();
+          setTimeout(initPlayer, 100);
         } else {
           // Wait for API to load
-          window.onYouTubeIframeAPIReady = initPlayer;
+          const originalCallback = window.onYouTubeIframeAPIReady;
+          window.onYouTubeIframeAPIReady = () => {
+            if (originalCallback) originalCallback();
+            setTimeout(initPlayer, 100);
+          };
         }
 
         return () => {
-          if (playerRef.current) {
-            playerRef.current.destroy();
+          if (checkInterval) clearInterval(checkInterval);
+          if (playerRef.current && playerRef.current.destroy) {
+            try {
+              playerRef.current.destroy();
+            } catch (e) {}
             playerRef.current = null;
           }
         };
@@ -240,6 +273,7 @@
         <div
           ref={containerRef}
           className="absolute inset-0 overflow-hidden"
+          style={{ backgroundColor: '#000' }}
         >
           <div
             id={playerIdRef.current}
@@ -961,7 +995,7 @@
                   />
                 </div>
                 <div className="flex gap-8 uppercase tracking-[0.2em] font-bold">
-                  <button className="hover:text-white transition-colors">
+                  <a href="archive.html" className="hover:text-white transition-colors">
                     <EditableText
                       elementKey="navLink1"
                       config={config}
@@ -971,8 +1005,8 @@
                       onSelect={handleElementSelect}
                       lang={lang}
                     />
-                  </button>
-                  <button className="hover:text-white transition-colors">
+                  </a>
+                  <a href="fragments.html" className="hover:text-white transition-colors">
                     <EditableText
                       elementKey="navLink2"
                       config={config}
@@ -982,7 +1016,7 @@
                       onSelect={handleElementSelect}
                       lang={lang}
                     />
-                  </button>
+                  </a>
                   {!isEditMode && (
                     <button
                       onClick={handleAdminInit}
