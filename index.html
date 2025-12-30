@@ -7,7 +7,7 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Syncopate:wght@400;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Noto+Serif+TC:wght@400;700;900&family=Orbitron:wght@400;700;900&family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Syncopate:wght@400;700&family=Bebas+Neue&family=Playfair+Display:wght@400;700;900&family=Montserrat:wght@300;400;700;900&display=swap" rel="stylesheet">
   <style>
     body {
       background-color: #050505;
@@ -18,9 +18,7 @@
     .acid-font { font-family: 'Syncopate', sans-serif; }
     .display-font { font-family: 'Orbitron', sans-serif; }
 
-    .liquid-metal {
-      filter: url('#liquid-goo');
-    }
+    .liquid-metal { filter: url('#liquid-goo'); }
 
     @keyframes float {
       0% { transform: translate(0, 0) scale(1); }
@@ -46,19 +44,87 @@
     ::-webkit-scrollbar { width: 4px; }
     ::-webkit-scrollbar-track { background: #000; }
     ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
-    ::-webkit-scrollbar-thumb:hover { background: #555; }
 
-    @keyframes slideInFromRight {
-      from { transform: translateX(100%); opacity: 0; }
-      to { transform: translateX(0); opacity: 1; }
+    /* Editable Element Styles */
+    .editable-element {
+      position: relative;
+      transition: all 0.2s ease;
     }
-    .animate-slide-in { animation: slideInFromRight 0.3s ease-out; }
+    .edit-mode .editable-element {
+      cursor: pointer;
+    }
+    .edit-mode .editable-element:hover {
+      outline: 2px dashed rgba(59, 130, 246, 0.5);
+      outline-offset: 4px;
+    }
+    .editable-element.selected {
+      outline: 2px solid #3b82f6 !important;
+      outline-offset: 4px;
+    }
 
-    @keyframes zoomIn {
-      from { transform: scale(0.95); opacity: 0; }
-      to { transform: scale(1); opacity: 1; }
+    /* Floating Toolbar */
+    .floating-toolbar {
+      position: fixed;
+      background: rgba(24, 24, 27, 0.98);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 12px;
+      padding: 12px;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+      z-index: 1000;
+      min-width: 320px;
     }
-    .animate-zoom-in { animation: zoomIn 0.2s ease-out; }
+
+    /* Color Picker */
+    .color-picker-wrap input[type="color"] {
+      -webkit-appearance: none;
+      width: 32px;
+      height: 32px;
+      border: none;
+      border-radius: 50%;
+      cursor: pointer;
+      padding: 0;
+    }
+    .color-picker-wrap input[type="color"]::-webkit-color-swatch-wrapper {
+      padding: 0;
+    }
+    .color-picker-wrap input[type="color"]::-webkit-color-swatch {
+      border: 2px solid rgba(255,255,255,0.2);
+      border-radius: 50%;
+    }
+
+    /* Edit Mode Banner */
+    .edit-mode-banner {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+      color: white;
+      padding: 8px 16px;
+      font-size: 12px;
+      font-weight: bold;
+      text-align: center;
+      z-index: 999;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 16px;
+    }
+
+    /* Dragging styles */
+    .dragging {
+      opacity: 0.8;
+      cursor: grabbing !important;
+    }
+
+    @keyframes pulse-border {
+      0%, 100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.4); }
+      50% { box-shadow: 0 0 0 8px rgba(59, 130, 246, 0); }
+    }
+    .pulse-hint {
+      animation: pulse-border 2s infinite;
+    }
   </style>
 </head>
 <body>
@@ -79,35 +145,84 @@
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
 
   <script type="text/babel" data-presets="react">
-    const { useState, useEffect } = React;
+    const { useState, useEffect, useRef, useCallback } = React;
+
+    // Font Options
+    const FONTS = {
+      display: [
+        { name: 'Orbitron', label: 'Orbitron (科技)' },
+        { name: 'Syncopate', label: 'Syncopate (酸性)' },
+        { name: 'Bebas Neue', label: 'Bebas Neue (粗體)' },
+        { name: 'Playfair Display', label: 'Playfair (優雅)' },
+        { name: 'Montserrat', label: 'Montserrat (現代)' },
+      ],
+      chinese: [
+        { name: 'Noto Sans TC', label: '思源黑體' },
+        { name: 'Noto Serif TC', label: '思源宋體' },
+      ]
+    };
 
     // Default Configuration
     const DEFAULT_CONFIG = {
-      texts: {
-        en: {
-          heroTitle: "METALMORPHOSIS",
-          heroSubtitle: "A LIQUID ODYSSEY IN DIGITAL CHROME",
-          ctaButton: "RESERVE FRAGMENT",
-          orderTitle: "ACQUISITION PORTAL",
-          orderDescription: "Secure your place in the collective. Each piece is generated via neural fluid simulations and serialized on-chain."
+      elements: {
+        heroTitle: {
+          en: "METALMORPHOSIS",
+          zh: "金屬蛻變",
+          fontSize: 96,
+          fontFamily: 'Syncopate',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#00FF41",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'chrometype'
         },
-        zh: {
-          heroTitle: "金屬蛻變",
-          heroSubtitle: "數位鉻合金中的液態奧德賽",
-          ctaButton: "預約碎片",
-          orderTitle: "獲取傳送門",
-          orderDescription: "確保您在集體中的位置。每件作品都通過神經流體模擬生成，並在鏈上序列化。"
+        heroSubtitle: {
+          en: "A LIQUID ODYSSEY IN DIGITAL CHROME",
+          zh: "數位鉻合金中的液態奧德賽",
+          fontSize: 14,
+          fontFamily: 'Orbitron',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#a1a1aa",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        orderTitle: {
+          en: "ACQUISITION PORTAL",
+          zh: "獲取傳送門",
+          fontSize: 32,
+          fontFamily: 'Syncopate',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#00FF41",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        orderDescription: {
+          en: "Secure your place in the collective. Each piece is generated via neural fluid simulations and serialized on-chain.",
+          zh: "確保您在集體中的位置。每件作品都通過神經流體模擬生成，並在鏈上序列化。",
+          fontSize: 14,
+          fontFamily: 'Space Mono',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#a1a1aa",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        ctaButton: {
+          en: "RESERVE FRAGMENT",
+          zh: "預約碎片",
+          fontSize: 12,
+          fontFamily: 'Space Mono',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#000000",
+          bgColor: "#FF00F5",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
         }
       },
-      styles: {
-        primaryColor: "#00FF41",
-        accentColor: "#FF00F5",
-        glowColor: "rgba(0, 255, 65, 0.5)",
-        textEffect: 'chrometype'
-      },
       layout: {
-        titlePositionX: 0,
-        titlePositionY: 0,
         mediaUrl: "https://picsum.photos/1200/800",
         isMediaVideo: false
       },
@@ -118,235 +233,270 @@
     };
 
     // Liquid Background Component
-    const LiquidBackground = () => {
+    const LiquidBackground = () => (
+      <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
+        <div className="absolute inset-0 bg-black opacity-90"></div>
+        <div className="liquid-metal w-full h-full relative opacity-40">
+          <div className="blob w-[400px] h-[400px] top-[10%] left-[10%] bg-white/20 blur-xl"></div>
+          <div className="blob w-[500px] h-[500px] top-[40%] left-[50%] bg-zinc-400/30 blur-2xl" style={{ animationDelay: '-2s' }}></div>
+          <div className="blob w-[350px] h-[350px] bottom-[10%] right-[20%] bg-zinc-600/40 blur-xl" style={{ animationDelay: '-5s' }}></div>
+          <div className="blob w-[600px] h-[600px] top-[-10%] right-[-10%] bg-zinc-200/10 blur-3xl" style={{ animationDelay: '-7s' }}></div>
+        </div>
+        <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+      </div>
+    );
+
+    // Floating Toolbar Component
+    const FloatingToolbar = ({ element, elementKey, config, updateElement, position, onClose, lang }) => {
+      const toolbarRef = useRef(null);
+      const data = config.elements[elementKey];
+      const isZh = lang === 'zh';
+
+      const handleChange = (key, value) => {
+        updateElement(elementKey, { ...data, [key]: value });
+      };
+
+      // Adjust toolbar position to stay in viewport
+      const [adjustedPos, setAdjustedPos] = useState(position);
+
+      useEffect(() => {
+        if (toolbarRef.current) {
+          const rect = toolbarRef.current.getBoundingClientRect();
+          let newX = position.x;
+          let newY = position.y;
+
+          if (position.x + rect.width > window.innerWidth - 20) {
+            newX = window.innerWidth - rect.width - 20;
+          }
+          if (position.y + rect.height > window.innerHeight - 20) {
+            newY = position.y - rect.height - 20;
+          }
+          if (newY < 60) newY = 60;
+
+          setAdjustedPos({ x: Math.max(20, newX), y: newY });
+        }
+      }, [position]);
+
       return (
-        <div className="fixed inset-0 z-[-1] overflow-hidden pointer-events-none">
-          <div className="absolute inset-0 bg-black opacity-90"></div>
-          <div className="liquid-metal w-full h-full relative opacity-40">
-            <div className="blob w-[400px] h-[400px] top-[10%] left-[10%] bg-white/20 blur-xl"></div>
-            <div className="blob w-[500px] h-[500px] top-[40%] left-[50%] bg-zinc-400/30 blur-2xl" style={{ animationDelay: '-2s' }}></div>
-            <div className="blob w-[350px] h-[350px] bottom-[10%] right-[20%] bg-zinc-600/40 blur-xl" style={{ animationDelay: '-5s' }}></div>
-            <div className="blob w-[600px] h-[600px] top-[-10%] right-[-10%] bg-zinc-200/10 blur-3xl" style={{ animationDelay: '-7s' }}></div>
+        <div
+          ref={toolbarRef}
+          className="floating-toolbar"
+          style={{ left: adjustedPos.x, top: adjustedPos.y }}
+          onClick={e => e.stopPropagation()}
+        >
+          <div className="flex justify-between items-center mb-3 pb-2 border-b border-zinc-700">
+            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">編輯元素</span>
+            <button onClick={onClose} className="text-zinc-500 hover:text-white text-lg leading-none">&times;</button>
           </div>
-          <div className="absolute inset-0 opacity-[0.03] pointer-events-none bg-[url('https://grainy-gradients.vercel.app/noise.svg')]"></div>
+
+          {/* Text Content */}
+          <div className="mb-4">
+            <label className="text-[10px] text-zinc-500 block mb-1">文字內容 ({isZh ? '中文' : 'English'})</label>
+            <textarea
+              value={isZh ? data.zh : data.en}
+              onChange={e => handleChange(isZh ? 'zh' : 'en', e.target.value)}
+              className="w-full bg-black/60 border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none"
+              rows={2}
+            />
+          </div>
+
+          {/* Font Size & Color */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-[10px] text-zinc-500 block mb-1">字體大小</label>
+              <div className="flex items-center gap-2">
+                <input
+                  type="range"
+                  min="10"
+                  max="150"
+                  value={data.fontSize}
+                  onChange={e => handleChange('fontSize', parseInt(e.target.value))}
+                  className="flex-1 accent-blue-500"
+                />
+                <span className="text-xs text-zinc-400 w-8">{data.fontSize}</span>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-zinc-500 block mb-1">顏色</label>
+              <div className="flex items-center gap-2 color-picker-wrap">
+                <input
+                  type="color"
+                  value={data.color}
+                  onChange={e => handleChange('color', e.target.value)}
+                />
+                <input
+                  type="text"
+                  value={data.color}
+                  onChange={e => handleChange('color', e.target.value)}
+                  className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 uppercase"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Font Family */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-[10px] text-zinc-500 block mb-1">英文字體</label>
+              <select
+                value={data.fontFamily}
+                onChange={e => handleChange('fontFamily', e.target.value)}
+                className="w-full bg-black/60 border border-zinc-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500"
+              >
+                {FONTS.display.map(f => (
+                  <option key={f.name} value={f.name}>{f.label}</option>
+                ))}
+                <option value="Space Mono">Space Mono</option>
+              </select>
+            </div>
+            <div>
+              <label className="text-[10px] text-zinc-500 block mb-1">中文字體</label>
+              <select
+                value={data.fontFamilyZh}
+                onChange={e => handleChange('fontFamilyZh', e.target.value)}
+                className="w-full bg-black/60 border border-zinc-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500"
+              >
+                {FONTS.chinese.map(f => (
+                  <option key={f.name} value={f.name}>{f.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          {/* Position Offset */}
+          <div className="grid grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="text-[10px] text-zinc-500 block mb-1">X 位移</label>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleChange('offsetX', data.offsetX - 10)}
+                  className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
+                >-10</button>
+                <input
+                  type="number"
+                  value={data.offsetX}
+                  onChange={e => handleChange('offsetX', parseInt(e.target.value) || 0)}
+                  className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-center focus:outline-none focus:border-blue-500 w-12"
+                />
+                <button
+                  onClick={() => handleChange('offsetX', data.offsetX + 10)}
+                  className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
+                >+10</button>
+              </div>
+            </div>
+            <div>
+              <label className="text-[10px] text-zinc-500 block mb-1">Y 位移</label>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => handleChange('offsetY', data.offsetY - 10)}
+                  className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
+                >-10</button>
+                <input
+                  type="number"
+                  value={data.offsetY}
+                  onChange={e => handleChange('offsetY', parseInt(e.target.value) || 0)}
+                  className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-center focus:outline-none focus:border-blue-500 w-12"
+                />
+                <button
+                  onClick={() => handleChange('offsetY', data.offsetY + 10)}
+                  className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
+                >+10</button>
+              </div>
+            </div>
+          </div>
+
+          {/* Text Effect */}
+          <div className="mb-4">
+            <label className="text-[10px] text-zinc-500 block mb-1">文字特效</label>
+            <div className="flex gap-2">
+              {['none', 'glow', 'chrometype', 'distort'].map(effect => (
+                <button
+                  key={effect}
+                  onClick={() => handleChange('textEffect', effect)}
+                  className={`flex-1 py-1.5 text-[10px] rounded border transition-all ${
+                    data.textEffect === effect
+                      ? 'bg-blue-600 border-blue-500 text-white'
+                      : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
+                  }`}
+                >
+                  {effect === 'none' ? '無' : effect === 'glow' ? '發光' : effect === 'chrometype' ? '金屬' : '扭曲'}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Background Color for Button */}
+          {elementKey === 'ctaButton' && (
+            <div className="mb-4">
+              <label className="text-[10px] text-zinc-500 block mb-1">按鈕背景色</label>
+              <div className="flex items-center gap-2 color-picker-wrap">
+                <input
+                  type="color"
+                  value={data.bgColor || '#FF00F5'}
+                  onChange={e => handleChange('bgColor', e.target.value)}
+                />
+                <input
+                  type="text"
+                  value={data.bgColor || '#FF00F5'}
+                  onChange={e => handleChange('bgColor', e.target.value)}
+                  className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 uppercase"
+                />
+              </div>
+            </div>
+          )}
         </div>
       );
     };
 
-    // Admin Panel Component
-    const AdminPanel = ({ config, updateConfig, isOpen, onClose }) => {
-      const [activeTab, setActiveTab] = useState('content');
-      const [editingLang, setEditingLang] = useState('zh');
+    // Editable Text Component
+    const EditableText = ({ elementKey, config, isEditMode, onSelect, isSelected, lang, as: Component = 'span', className = '', style = {} }) => {
+      const ref = useRef(null);
+      const data = config.elements[elementKey];
+      const isZh = lang === 'zh';
+      const text = isZh ? data.zh : data.en;
 
-      const handleTextChange = (key, val) => {
-        const newTexts = { ...config.texts };
-        newTexts[editingLang] = { ...newTexts[editingLang], [key]: val };
-        updateConfig({ ...config, texts: newTexts });
+      const getTextStyle = () => {
+        const baseStyle = {
+          fontSize: `${data.fontSize}px`,
+          fontFamily: isZh ? data.fontFamilyZh : data.fontFamily,
+          color: data.color,
+          transform: `translate(${data.offsetX}px, ${data.offsetY}px)`,
+          display: 'inline-block',
+          ...style
+        };
+
+        if (data.textEffect === 'glow') {
+          baseStyle.textShadow = `0 0 20px ${data.color}, 0 0 40px ${data.color}`;
+        } else if (data.textEffect === 'chrometype') {
+          baseStyle.background = `linear-gradient(to bottom, #fff 0%, ${data.color} 50%, #000 100%)`;
+          baseStyle.WebkitBackgroundClip = 'text';
+          baseStyle.WebkitTextFillColor = 'transparent';
+          baseStyle.filter = 'drop-shadow(2px 2px 2px rgba(0,0,0,0.5)) contrast(1.5)';
+        } else if (data.textEffect === 'distort') {
+          baseStyle.fontStyle = 'italic';
+          baseStyle.transform = `translate(${data.offsetX}px, ${data.offsetY}px) skew(-10deg)`;
+        }
+
+        return baseStyle;
       };
 
-      const handleStyleChange = (key, val) => {
-        updateConfig({ ...config, styles: { ...config.styles, [key]: val } });
+      const handleClick = (e) => {
+        if (isEditMode) {
+          e.stopPropagation();
+          const rect = ref.current.getBoundingClientRect();
+          onSelect(elementKey, { x: rect.left, y: rect.bottom + 10 });
+        }
       };
-
-      const handleLayoutChange = (key, val) => {
-        updateConfig({ ...config, layout: { ...config.layout, [key]: val } });
-      };
-
-      if (!isOpen) return null;
-
-      const currentTexts = config.texts[editingLang];
 
       return (
-        <div className="fixed top-0 right-0 w-80 h-full glass-morphism z-50 p-6 overflow-y-auto border-l border-zinc-700 shadow-2xl animate-slide-in">
-          <div className="flex justify-between items-center mb-8">
-            <h2 className="display-font text-sm font-bold tracking-widest uppercase">後台管理終端</h2>
-            <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">✕</button>
-          </div>
-
-          <div className="flex gap-2 mb-6 border-b border-zinc-800 pb-2">
-            {['content', 'style', 'layout'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveTab(tab)}
-                className={`text-[10px] uppercase tracking-tighter px-2 py-1 ${activeTab === tab ? 'text-white border-b border-white' : 'text-zinc-500'}`}
-              >
-                {tab === 'content' ? '內容' : tab === 'style' ? '樣式' : '佈局'}
-              </button>
-            ))}
-          </div>
-
-          <div className="space-y-6">
-            {activeTab === 'content' && (
-              <div className="space-y-4">
-                <div className="flex bg-zinc-900 p-1 rounded mb-4">
-                  <button
-                    onClick={() => setEditingLang('zh')}
-                    className={`flex-1 text-[10px] py-1 rounded ${editingLang === 'zh' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}
-                  >中文</button>
-                  <button
-                    onClick={() => setEditingLang('en')}
-                    className={`flex-1 text-[10px] py-1 rounded ${editingLang === 'en' ? 'bg-zinc-700 text-white' : 'text-zinc-500'}`}
-                  >English</button>
-                </div>
-
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">主標題</label>
-                  <input
-                    type="text"
-                    value={currentTexts.heroTitle}
-                    onChange={(e) => handleTextChange('heroTitle', e.target.value)}
-                    className="bg-black/40 border border-zinc-800 text-xs p-2 w-full focus:outline-none focus:border-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">副標題</label>
-                  <textarea
-                    value={currentTexts.heroSubtitle}
-                    onChange={(e) => handleTextChange('heroSubtitle', e.target.value)}
-                    className="bg-black/40 border border-zinc-800 text-xs p-2 w-full h-20 focus:outline-none focus:border-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">行動按鈕</label>
-                  <input
-                    type="text"
-                    value={currentTexts.ctaButton}
-                    onChange={(e) => handleTextChange('ctaButton', e.target.value)}
-                    className="bg-black/40 border border-zinc-800 text-xs p-2 w-full focus:outline-none focus:border-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">訂購區標題</label>
-                  <input
-                    type="text"
-                    value={currentTexts.orderTitle}
-                    onChange={(e) => handleTextChange('orderTitle', e.target.value)}
-                    className="bg-black/40 border border-zinc-800 text-xs p-2 w-full focus:outline-none focus:border-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">訂購區描述</label>
-                  <textarea
-                    value={currentTexts.orderDescription}
-                    onChange={(e) => handleTextChange('orderDescription', e.target.value)}
-                    className="bg-black/40 border border-zinc-800 text-xs p-2 w-full h-20 focus:outline-none focus:border-zinc-500"
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'style' && (
-              <div className="space-y-4">
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">主要顏色</label>
-                  <input
-                    type="color"
-                    value={config.styles.primaryColor}
-                    onChange={(e) => handleStyleChange('primaryColor', e.target.value)}
-                    className="w-full h-10 bg-transparent border-none cursor-pointer"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">強調顏色</label>
-                  <input
-                    type="color"
-                    value={config.styles.accentColor}
-                    onChange={(e) => handleStyleChange('accentColor', e.target.value)}
-                    className="w-full h-10 bg-transparent border-none cursor-pointer"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">文字特效</label>
-                  <select
-                    value={config.styles.textEffect}
-                    onChange={(e) => handleStyleChange('textEffect', e.target.value)}
-                    className="bg-black/40 border border-zinc-800 text-xs p-2 w-full focus:outline-none"
-                  >
-                    <option value="none">無</option>
-                    <option value="glow">發光</option>
-                    <option value="chrometype">鉻合金字體</option>
-                    <option value="distort">扭曲</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">價格 (ETH)</label>
-                  <input
-                    type="number"
-                    step="0.01"
-                    value={config.artwork.price}
-                    onChange={(e) => updateConfig({ ...config, artwork: { ...config.artwork, price: parseFloat(e.target.value) || 0 } })}
-                    className="bg-black/40 border border-zinc-800 text-xs p-2 w-full focus:outline-none focus:border-zinc-500"
-                  />
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">版本</label>
-                  <input
-                    type="text"
-                    value={config.artwork.edition}
-                    onChange={(e) => updateConfig({ ...config, artwork: { ...config.artwork, edition: e.target.value } })}
-                    className="bg-black/40 border border-zinc-800 text-xs p-2 w-full focus:outline-none focus:border-zinc-500"
-                  />
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'layout' && (
-              <div className="space-y-4">
-                <div className="flex gap-4">
-                  <div className="w-1/2">
-                    <label className="text-[10px] text-zinc-500 block mb-1">標題 X 軸</label>
-                    <input
-                      type="range" min="-100" max="100"
-                      value={config.layout.titlePositionX}
-                      onChange={(e) => handleLayoutChange('titlePositionX', parseInt(e.target.value))}
-                      className="w-full accent-zinc-500"
-                    />
-                  </div>
-                  <div className="w-1/2">
-                    <label className="text-[10px] text-zinc-500 block mb-1">標題 Y 軸</label>
-                    <input
-                      type="range" min="-100" max="100"
-                      value={config.layout.titlePositionY}
-                      onChange={(e) => handleLayoutChange('titlePositionY', parseInt(e.target.value))}
-                      className="w-full accent-zinc-500"
-                    />
-                  </div>
-                </div>
-                <div>
-                  <label className="text-[10px] text-zinc-500 block mb-1">媒體 URL (影片或圖片)</label>
-                  <input
-                    type="text"
-                    value={config.layout.mediaUrl}
-                    onChange={(e) => handleLayoutChange('mediaUrl', e.target.value)}
-                    placeholder="圖片/影片網址"
-                    className="bg-black/40 border border-zinc-800 text-xs p-2 w-full focus:outline-none focus:border-zinc-500"
-                  />
-                  <div className="mt-2 flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={config.layout.isMediaVideo}
-                      onChange={(e) => handleLayoutChange('isMediaVideo', e.target.checked)}
-                    />
-                    <span className="text-[10px] text-zinc-400">這是影片</span>
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="mt-12 p-4 border border-zinc-800 bg-zinc-900/50">
-            <p className="text-[10px] text-zinc-600 mb-2 leading-tight">變更會立即預覽。重新整理將捨棄未儲存的內容。</p>
-            <button
-              onClick={() => {
-                localStorage.setItem('acid_config', JSON.stringify(config));
-                alert('設定已成功儲存');
-              }}
-              className="w-full bg-white text-black text-[10px] font-bold py-2 uppercase tracking-widest hover:bg-zinc-200"
-            >
-              儲存配置
-            </button>
-          </div>
-        </div>
+        <Component
+          ref={ref}
+          className={`editable-element ${isSelected ? 'selected' : ''} ${isEditMode ? 'pulse-hint' : ''} ${className}`}
+          style={getTextStyle()}
+          onClick={handleClick}
+        >
+          {text}
+        </Component>
       );
     };
 
@@ -354,16 +504,19 @@
     const App = () => {
       const [config, setConfig] = useState(DEFAULT_CONFIG);
       const [lang, setLang] = useState('en');
-      const [isAdminOpen, setIsAdminOpen] = useState(false);
+      const [isEditMode, setIsEditMode] = useState(false);
       const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
       const [passwordInput, setPasswordInput] = useState('');
       const [isAuthenticated, setIsAuthenticated] = useState(false);
+      const [selectedElement, setSelectedElement] = useState(null);
+      const [toolbarPosition, setToolbarPosition] = useState({ x: 0, y: 0 });
 
       useEffect(() => {
-        const saved = localStorage.getItem('acid_config');
+        const saved = localStorage.getItem('acid_config_v2');
         if (saved) {
           try {
-            setConfig(JSON.parse(saved));
+            const parsed = JSON.parse(saved);
+            setConfig(prev => ({ ...prev, ...parsed }));
           } catch (e) {
             console.error("Failed to load config", e);
           }
@@ -372,7 +525,7 @@
 
       const handleAdminInit = () => {
         if (isAuthenticated) {
-          setIsAdminOpen(true);
+          setIsEditMode(true);
         } else {
           setIsAuthModalOpen(true);
         }
@@ -382,52 +535,72 @@
         e.preventDefault();
         if (passwordInput === 'drawme') {
           setIsAuthenticated(true);
-          setIsAdminOpen(true);
+          setIsEditMode(true);
           setIsAuthModalOpen(false);
           setPasswordInput('');
         } else {
-          alert(lang === 'zh' ? '密碼錯誤' : 'Incorrect Password');
+          alert('密碼錯誤');
         }
       };
 
-      const currentTexts = config.texts[lang];
+      const handleElementSelect = (key, position) => {
+        setSelectedElement(key);
+        setToolbarPosition(position);
+      };
 
-      const getTextStyles = () => {
-        const base = {
-          color: config.styles.primaryColor,
-          transform: `translate(${config.layout.titlePositionX}px, ${config.layout.titlePositionY}px)`,
-          textShadow: config.styles.textEffect === 'glow' ? `0 0 20px ${config.styles.glowColor}` : 'none',
-        };
+      const handleCloseToolbar = () => {
+        setSelectedElement(null);
+      };
 
-        if (config.styles.textEffect === 'chrometype') {
-          return {
-            ...base,
-            background: `linear-gradient(to bottom, #fff 0%, ${config.styles.primaryColor} 50%, #000 100%)`,
-            WebkitBackgroundClip: 'text',
-            WebkitTextFillColor: 'transparent',
-            filter: 'drop-shadow(2px 2px 2px rgba(0,0,0,0.5)) contrast(1.5)',
-          };
+      const updateElement = (key, newData) => {
+        setConfig(prev => ({
+          ...prev,
+          elements: { ...prev.elements, [key]: newData }
+        }));
+      };
+
+      const saveConfig = () => {
+        localStorage.setItem('acid_config_v2', JSON.stringify(config));
+        alert('設定已儲存！');
+      };
+
+      const exitEditMode = () => {
+        setIsEditMode(false);
+        setSelectedElement(null);
+      };
+
+      // Close toolbar when clicking outside
+      const handleBackgroundClick = () => {
+        if (selectedElement) {
+          setSelectedElement(null);
         }
-
-        if (config.styles.textEffect === 'distort') {
-          return {
-            ...base,
-            fontFamily: 'Syncopate, sans-serif',
-            letterSpacing: '-0.05em',
-            fontStyle: 'italic',
-            transform: `translate(${config.layout.titlePositionX}px, ${config.layout.titlePositionY}px) skew(-10deg)`,
-          };
-        }
-
-        return base;
       };
 
       return (
-        <div className="relative min-h-screen">
+        <div className={`relative min-h-screen ${isEditMode ? 'edit-mode' : ''}`} onClick={handleBackgroundClick}>
           <LiquidBackground />
 
-          {/* Language Switcher Button */}
-          <div className="fixed top-8 right-32 z-40">
+          {/* Edit Mode Banner */}
+          {isEditMode && (
+            <div className="edit-mode-banner">
+              <span>編輯模式 - 點擊任何文字即可編輯</span>
+              <button
+                onClick={saveConfig}
+                className="px-4 py-1 bg-white text-purple-600 rounded text-xs font-bold hover:bg-gray-100"
+              >
+                儲存變更
+              </button>
+              <button
+                onClick={exitEditMode}
+                className="px-4 py-1 bg-black/30 rounded text-xs font-bold hover:bg-black/50"
+              >
+                退出編輯
+              </button>
+            </div>
+          )}
+
+          {/* Language Switcher */}
+          <div className={`fixed ${isEditMode ? 'top-16' : 'top-8'} right-8 z-40 flex gap-2`}>
             <button
               onClick={() => setLang(l => l === 'en' ? 'zh' : 'en')}
               className="glass-morphism px-3 py-1 text-[10px] font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-all border border-white/20"
@@ -437,7 +610,7 @@
           </div>
 
           {/* Main UI */}
-          <main className="relative z-10 container mx-auto px-6 py-12 flex flex-col items-center min-h-screen">
+          <main className={`relative z-10 container mx-auto px-6 ${isEditMode ? 'pt-20' : 'pt-12'} pb-12 flex flex-col items-center min-h-screen`}>
 
             {/* Navigation */}
             <nav className="w-full flex justify-between items-center mb-16">
@@ -447,169 +620,263 @@
               <div className="flex gap-8 text-[10px] uppercase tracking-[0.2em] font-bold text-zinc-500">
                 <button className="hover:text-white transition-colors">{lang === 'en' ? 'Archive' : '封存'}</button>
                 <button className="hover:text-white transition-colors">{lang === 'en' ? 'Fragments' : '碎片'}</button>
-                <button
-                  onClick={handleAdminInit}
-                  className="px-4 py-1 border border-zinc-700 hover:bg-white hover:text-black transition-all"
-                >
-                  System.init()
-                </button>
+                {!isEditMode && (
+                  <button
+                    onClick={handleAdminInit}
+                    className="px-4 py-1 border border-zinc-700 hover:bg-white hover:text-black transition-all"
+                  >
+                    System.init()
+                  </button>
+                )}
               </div>
             </nav>
 
             {/* Hero Section */}
             <section className="flex flex-col items-center text-center max-w-5xl w-full mb-24">
-              <h1
-                style={getTextStyles()}
-                className="acid-font text-5xl md:text-8xl lg:text-9xl font-black mb-4 transition-transform duration-300 ease-out leading-none"
-              >
-                {currentTexts.heroTitle}
+              <h1 className="mb-4 leading-none">
+                <EditableText
+                  elementKey="heroTitle"
+                  config={config}
+                  isEditMode={isEditMode}
+                  isSelected={selectedElement === 'heroTitle'}
+                  onSelect={handleElementSelect}
+                  lang={lang}
+                  as="span"
+                  className="font-black"
+                />
               </h1>
-              <p className="display-font text-xs md:text-sm tracking-[0.4em] text-zinc-400 mb-12 uppercase">
-                {currentTexts.heroSubtitle}
+              <p className="mb-12 uppercase tracking-[0.4em]">
+                <EditableText
+                  elementKey="heroSubtitle"
+                  config={config}
+                  isEditMode={isEditMode}
+                  isSelected={selectedElement === 'heroSubtitle'}
+                  onSelect={handleElementSelect}
+                  lang={lang}
+                  as="span"
+                />
               </p>
 
-              {/* Center Media Display */}
+              {/* Media Display */}
               <div className="relative w-full aspect-video md:aspect-[21/9] glass-morphism overflow-hidden rounded-sm group cursor-crosshair">
-                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-[2]"></div>
-                 <div className="absolute inset-0 border-[0.5px] border-white/10 z-[3] pointer-events-none"></div>
+                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-[2]"></div>
+                <div className="absolute inset-0 border-[0.5px] border-white/10 z-[3] pointer-events-none"></div>
 
-                 {config.layout.isMediaVideo ? (
-                   <video
+                {config.layout.isMediaVideo ? (
+                  <video
                     src={config.layout.mediaUrl}
                     autoPlay loop muted playsInline
                     className="w-full h-full object-cover grayscale contrast-125 opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
-                   />
-                 ) : (
-                   <img
+                  />
+                ) : (
+                  <img
                     src={config.layout.mediaUrl}
                     className="w-full h-full object-cover grayscale contrast-125 opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
                     alt="Artwork"
-                   />
-                 )}
+                  />
+                )}
 
-                 <div className="absolute bottom-8 left-8 z-[5] text-left">
-                   <div className="text-[9px] text-white/40 uppercase mb-1 tracking-widest">fragment_id</div>
-                   <div className="display-font text-lg font-bold tracking-tighter">PROTO-GENESIS_01</div>
-                 </div>
+                <div className="absolute bottom-8 left-8 z-[5] text-left">
+                  <div className="text-[9px] text-white/40 uppercase mb-1 tracking-widest">fragment_id</div>
+                  <div className="display-font text-lg font-bold tracking-tighter">PROTO-GENESIS_01</div>
+                </div>
 
-                 <div className="absolute top-8 right-8 z-[5] flex items-center gap-2">
-                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                    <span className="text-[9px] tracking-widest opacity-60 uppercase">Live_Render</span>
-                 </div>
+                <div className="absolute top-8 right-8 z-[5] flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                  <span className="text-[9px] tracking-widest opacity-60 uppercase">Live_Render</span>
+                </div>
+
+                {/* Edit media button */}
+                {isEditMode && (
+                  <div className="absolute bottom-8 right-8 z-[5]">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const url = prompt('輸入圖片/影片 URL:', config.layout.mediaUrl);
+                        if (url) {
+                          const isVideo = confirm('這是影片嗎?');
+                          setConfig(prev => ({
+                            ...prev,
+                            layout: { ...prev.layout, mediaUrl: url, isMediaVideo: isVideo }
+                          }));
+                        }
+                      }}
+                      className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                    >
+                      更換媒體
+                    </button>
+                  </div>
+                )}
               </div>
             </section>
 
             {/* Order Section */}
             <section className="w-full max-w-4xl glass-morphism p-12 mb-24 relative overflow-hidden">
-               <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                 <svg width="200" height="200" viewBox="0 0 100 100">
-                   <circle cx="50" cy="50" r="40" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="2 2" />
-                   <path d="M10 50 L90 50 M50 10 L50 90" stroke="white" strokeWidth="0.5" />
-                 </svg>
-               </div>
+              <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                <svg width="200" height="200" viewBox="0 0 100 100">
+                  <circle cx="50" cy="50" r="40" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="2 2" />
+                  <path d="M10 50 L90 50 M50 10 L50 90" stroke="white" strokeWidth="0.5" />
+                </svg>
+              </div>
 
-               <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                 <div>
-                    <h2 className="acid-font text-3xl font-bold mb-6 italic" style={{ color: config.styles.primaryColor }}>
-                      {currentTexts.orderTitle}
-                    </h2>
-                    <p className="text-sm leading-relaxed text-zinc-400 mb-8 font-light italic">
-                      {currentTexts.orderDescription}
-                    </p>
-                    <div className="flex items-center gap-8 mb-8 border-y border-zinc-800 py-6">
-                       <div>
-                         <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">{lang === 'en' ? 'Valuation' : '估值'}</div>
-                         <div className="display-font text-xl font-black">{config.artwork.price} ETH</div>
-                       </div>
-                       <div>
-                         <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">{lang === 'en' ? 'Edition' : '版本'}</div>
-                         <div className="display-font text-xl font-black">{config.artwork.edition}</div>
-                       </div>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                <div>
+                  <h2 className="mb-6 italic font-bold">
+                    <EditableText
+                      elementKey="orderTitle"
+                      config={config}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'orderTitle'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                      as="span"
+                    />
+                  </h2>
+                  <p className="mb-8 font-light italic leading-relaxed">
+                    <EditableText
+                      elementKey="orderDescription"
+                      config={config}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'orderDescription'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                      as="span"
+                    />
+                  </p>
+                  <div className="flex items-center gap-8 mb-8 border-y border-zinc-800 py-6">
+                    <div>
+                      <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">{lang === 'en' ? 'Valuation' : '估值'}</div>
+                      <div className="display-font text-xl font-black">
+                        {isEditMode ? (
+                          <input
+                            type="number"
+                            step="0.01"
+                            value={config.artwork.price}
+                            onChange={e => setConfig(prev => ({ ...prev, artwork: { ...prev.artwork, price: parseFloat(e.target.value) || 0 } }))}
+                            onClick={e => e.stopPropagation()}
+                            className="bg-transparent border-b border-zinc-600 w-20 focus:outline-none focus:border-blue-500"
+                          />
+                        ) : config.artwork.price} ETH
+                      </div>
                     </div>
-                 </div>
+                    <div>
+                      <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">{lang === 'en' ? 'Edition' : '版本'}</div>
+                      <div className="display-font text-xl font-black">
+                        {isEditMode ? (
+                          <input
+                            type="text"
+                            value={config.artwork.edition}
+                            onChange={e => setConfig(prev => ({ ...prev, artwork: { ...prev.artwork, edition: e.target.value } }))}
+                            onClick={e => e.stopPropagation()}
+                            className="bg-transparent border-b border-zinc-600 w-20 focus:outline-none focus:border-blue-500"
+                          />
+                        ) : config.artwork.edition}
+                      </div>
+                    </div>
+                  </div>
+                </div>
 
-                 <div className="space-y-4">
-                    <div className="bg-black/50 border border-zinc-800 p-4">
-                       <label className="text-[9px] text-zinc-600 block mb-2 uppercase tracking-[0.2em]">{lang === 'en' ? 'Collector_Identifier' : '收藏家標識符'}</label>
-                       <input type="text" placeholder={lang === 'en' ? "WALLET_ADDRESS_OR_EMAIL" : "錢包地址或電子郵件"} className="w-full bg-transparent border-b border-zinc-700 py-2 text-xs focus:outline-none focus:border-white transition-colors" />
-                    </div>
-                    <button
-                      className="w-full py-6 text-xs font-black uppercase tracking-[0.5em] transition-all relative group overflow-hidden"
-                      style={{ backgroundColor: config.styles.accentColor, color: '#000' }}
-                    >
-                      <span className="relative z-10">{currentTexts.ctaButton}</span>
-                      <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                    </button>
-                    <p className="text-[8px] text-center text-zinc-600 uppercase tracking-widest">
-                      {lang === 'en' ? 'All sales are final. Transactions secured via smart contract.' : '所有銷售均為最終銷售。交易通過智能合約擔保。'}
-                    </p>
-                 </div>
-               </div>
+                <div className="space-y-4">
+                  <div className="bg-black/50 border border-zinc-800 p-4">
+                    <label className="text-[9px] text-zinc-600 block mb-2 uppercase tracking-[0.2em]">{lang === 'en' ? 'Collector_Identifier' : '收藏家標識符'}</label>
+                    <input type="text" placeholder={lang === 'en' ? "WALLET_ADDRESS_OR_EMAIL" : "錢包地址或電子郵件"} className="w-full bg-transparent border-b border-zinc-700 py-2 text-xs focus:outline-none focus:border-white transition-colors" />
+                  </div>
+                  <button
+                    className="w-full py-6 font-black uppercase transition-all relative group overflow-hidden editable-element"
+                    style={{
+                      backgroundColor: config.elements.ctaButton.bgColor,
+                      color: config.elements.ctaButton.color,
+                      fontSize: `${config.elements.ctaButton.fontSize}px`,
+                      fontFamily: lang === 'zh' ? config.elements.ctaButton.fontFamilyZh : config.elements.ctaButton.fontFamily,
+                      letterSpacing: '0.5em',
+                      transform: `translate(${config.elements.ctaButton.offsetX}px, ${config.elements.ctaButton.offsetY}px)`
+                    }}
+                    onClick={(e) => {
+                      if (isEditMode) {
+                        e.stopPropagation();
+                        const rect = e.target.getBoundingClientRect();
+                        handleElementSelect('ctaButton', { x: rect.left, y: rect.bottom + 10 });
+                      }
+                    }}
+                  >
+                    <span className="relative z-10">{lang === 'zh' ? config.elements.ctaButton.zh : config.elements.ctaButton.en}</span>
+                    <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
+                  </button>
+                  <p className="text-[8px] text-center text-zinc-600 uppercase tracking-widest">
+                    {lang === 'en' ? 'All sales are final. Transactions secured via smart contract.' : '所有銷售均為最終銷售。交易通過智能合約擔保。'}
+                  </p>
+                </div>
+              </div>
             </section>
 
             {/* Footer */}
             <footer className="w-full border-t border-zinc-900 pt-12 pb-24 flex flex-col md:flex-row justify-between items-start gap-8 opacity-40">
-               <div className="max-w-xs">
-                  <div className="display-font text-xs font-bold mb-4">ACID_LABS © 2024</div>
-                  <p className="text-[10px] leading-relaxed italic">
-                    {lang === 'en'
-                      ? 'Explorations in digital materiality and neural aesthetics. Built on the edge of the void.'
-                      : '探索數位物質性與神經美學。建立在虛空的邊緣。'}
-                  </p>
-               </div>
-               <div className="grid grid-cols-2 gap-12 text-[10px] uppercase font-bold tracking-widest">
-                  <div className="flex flex-col gap-2">
-                    <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Manifesto' : '宣言'}</a>
-                    <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Whitepaper' : '白皮書'}</a>
-                    <a href="#" className="hover:text-white transition-colors">Discord</a>
-                  </div>
-                  <div className="flex flex-col gap-2">
-                    <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Privacy' : '隱私'}</a>
-                    <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Terms' : '條款'}</a>
-                    <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Contract' : '合約'}</a>
-                  </div>
-               </div>
+              <div className="max-w-xs">
+                <div className="display-font text-xs font-bold mb-4">ACID_LABS © 2024</div>
+                <p className="text-[10px] leading-relaxed italic">
+                  {lang === 'en'
+                    ? 'Explorations in digital materiality and neural aesthetics. Built on the edge of the void.'
+                    : '探索數位物質性與神經美學。建立在虛空的邊緣。'}
+                </p>
+              </div>
+              <div className="grid grid-cols-2 gap-12 text-[10px] uppercase font-bold tracking-widest">
+                <div className="flex flex-col gap-2">
+                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Manifesto' : '宣言'}</a>
+                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Whitepaper' : '白皮書'}</a>
+                  <a href="#" className="hover:text-white transition-colors">Discord</a>
+                </div>
+                <div className="flex flex-col gap-2">
+                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Privacy' : '隱私'}</a>
+                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Terms' : '條款'}</a>
+                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Contract' : '合約'}</a>
+                </div>
+              </div>
             </footer>
           </main>
 
           {/* Password Modal */}
           {isAuthModalOpen && (
             <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/90 backdrop-blur-sm">
-              <form onSubmit={handlePasswordSubmit} className="glass-morphism p-8 w-80 text-center animate-zoom-in">
-                 <h3 className="display-font text-xs tracking-[0.3em] uppercase mb-6">系統身份驗證</h3>
-                 <input
-                    autoFocus
-                    type="password"
-                    placeholder="請輸入密碼"
-                    value={passwordInput}
-                    onChange={(e) => setPasswordInput(e.target.value)}
-                    className="w-full bg-black border border-zinc-800 p-3 text-xs mb-4 focus:outline-none focus:border-zinc-500"
-                 />
-                 <div className="flex gap-2">
-                   <button
-                      type="button"
-                      onClick={() => setIsAuthModalOpen(false)}
-                      className="flex-1 py-2 text-[10px] border border-zinc-800 hover:bg-zinc-800 transition-colors"
-                    >取消</button>
-                   <button
-                      type="submit"
-                      className="flex-1 py-2 text-[10px] bg-white text-black font-bold uppercase"
-                    >進入</button>
-                 </div>
+              <form onSubmit={handlePasswordSubmit} className="glass-morphism p-8 w-80 text-center">
+                <h3 className="display-font text-xs tracking-[0.3em] uppercase mb-6">系統身份驗證</h3>
+                <input
+                  autoFocus
+                  type="password"
+                  placeholder="請輸入密碼"
+                  value={passwordInput}
+                  onChange={(e) => setPasswordInput(e.target.value)}
+                  className="w-full bg-black border border-zinc-800 p-3 text-xs mb-4 focus:outline-none focus:border-zinc-500"
+                />
+                <div className="flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setIsAuthModalOpen(false)}
+                    className="flex-1 py-2 text-[10px] border border-zinc-800 hover:bg-zinc-800 transition-colors"
+                  >取消</button>
+                  <button
+                    type="submit"
+                    className="flex-1 py-2 text-[10px] bg-white text-black font-bold uppercase"
+                  >進入</button>
+                </div>
               </form>
             </div>
           )}
 
-          {/* Admin Panel */}
-          <AdminPanel
-            config={config}
-            updateConfig={setConfig}
-            isOpen={isAdminOpen}
-            onClose={() => setIsAdminOpen(false)}
-          />
+          {/* Floating Toolbar */}
+          {isEditMode && selectedElement && (
+            <FloatingToolbar
+              element={selectedElement}
+              elementKey={selectedElement}
+              config={config}
+              updateElement={updateElement}
+              position={toolbarPosition}
+              onClose={handleCloseToolbar}
+              lang={lang}
+            />
+          )}
 
-          {/* Admin Button */}
-          {!isAdminOpen && (
+          {/* Admin Button (only when not in edit mode) */}
+          {!isEditMode && (
             <button
               onClick={handleAdminInit}
               className="fixed bottom-8 right-8 z-40 w-12 h-12 rounded-full glass-morphism border border-white/20 flex items-center justify-center hover:scale-110 transition-transform bg-black"
