@@ -220,6 +220,94 @@
           offsetX: 0,
           offsetY: 0,
           textEffect: 'none'
+        },
+        footerBrand: {
+          en: "ACID_LABS © 2024",
+          zh: "ACID_LABS © 2024",
+          fontSize: 12,
+          fontFamily: 'Orbitron',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#ffffff",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        footerDescription: {
+          en: "Explorations in digital materiality and neural aesthetics. Built on the edge of the void.",
+          zh: "探索數位物質性與神經美學。建立在虛空的邊緣。",
+          fontSize: 10,
+          fontFamily: 'Space Mono',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#a1a1aa",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        footerLink1: {
+          en: "Manifesto",
+          zh: "宣言",
+          fontSize: 10,
+          fontFamily: 'Space Mono',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#a1a1aa",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        footerLink2: {
+          en: "Whitepaper",
+          zh: "白皮書",
+          fontSize: 10,
+          fontFamily: 'Space Mono',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#a1a1aa",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        footerLink3: {
+          en: "Discord",
+          zh: "Discord",
+          fontSize: 10,
+          fontFamily: 'Space Mono',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#a1a1aa",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        footerLink4: {
+          en: "Privacy",
+          zh: "隱私",
+          fontSize: 10,
+          fontFamily: 'Space Mono',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#a1a1aa",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        footerLink5: {
+          en: "Terms",
+          zh: "條款",
+          fontSize: 10,
+          fontFamily: 'Space Mono',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#a1a1aa",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
+        },
+        footerLink6: {
+          en: "Contract",
+          zh: "合約",
+          fontSize: 10,
+          fontFamily: 'Space Mono',
+          fontFamilyZh: 'Noto Sans TC',
+          color: "#a1a1aa",
+          offsetX: 0,
+          offsetY: 0,
+          textEffect: 'none'
         }
       },
       layout: {
@@ -810,25 +898,102 @@
             </section>
 
             {/* Footer */}
-            <footer className="w-full border-t border-zinc-900 pt-12 pb-24 flex flex-col md:flex-row justify-between items-start gap-8 opacity-40">
+            <footer className={`w-full border-t border-zinc-900 pt-12 pb-24 flex flex-col md:flex-row justify-between items-start gap-8 ${isEditMode ? '' : 'opacity-40'}`}>
               <div className="max-w-xs">
-                <div className="display-font text-xs font-bold mb-4">ACID_LABS © 2024</div>
-                <p className="text-[10px] leading-relaxed italic">
-                  {lang === 'en'
-                    ? 'Explorations in digital materiality and neural aesthetics. Built on the edge of the void.'
-                    : '探索數位物質性與神經美學。建立在虛空的邊緣。'}
-                </p>
+                <div className="mb-4">
+                  <EditableText
+                    elementKey="footerBrand"
+                    config={config}
+                    isEditMode={isEditMode}
+                    isSelected={selectedElement === 'footerBrand'}
+                    onSelect={handleElementSelect}
+                    lang={lang}
+                    as="span"
+                    className="font-bold"
+                  />
+                </div>
+                <div className="leading-relaxed italic">
+                  <EditableText
+                    elementKey="footerDescription"
+                    config={config}
+                    isEditMode={isEditMode}
+                    isSelected={selectedElement === 'footerDescription'}
+                    onSelect={handleElementSelect}
+                    lang={lang}
+                    as="span"
+                  />
+                </div>
               </div>
-              <div className="grid grid-cols-2 gap-12 text-[10px] uppercase font-bold tracking-widest">
+              <div className="grid grid-cols-2 gap-12 uppercase font-bold tracking-widest">
                 <div className="flex flex-col gap-2">
-                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Manifesto' : '宣言'}</a>
-                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Whitepaper' : '白皮書'}</a>
-                  <a href="#" className="hover:text-white transition-colors">Discord</a>
+                  <a href="#" className="hover:text-white transition-colors">
+                    <EditableText
+                      elementKey="footerLink1"
+                      config={config}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'footerLink1'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                      as="span"
+                    />
+                  </a>
+                  <a href="#" className="hover:text-white transition-colors">
+                    <EditableText
+                      elementKey="footerLink2"
+                      config={config}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'footerLink2'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                      as="span"
+                    />
+                  </a>
+                  <a href="#" className="hover:text-white transition-colors">
+                    <EditableText
+                      elementKey="footerLink3"
+                      config={config}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'footerLink3'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                      as="span"
+                    />
+                  </a>
                 </div>
                 <div className="flex flex-col gap-2">
-                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Privacy' : '隱私'}</a>
-                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Terms' : '條款'}</a>
-                  <a href="#" className="hover:text-white transition-colors">{lang === 'en' ? 'Contract' : '合約'}</a>
+                  <a href="#" className="hover:text-white transition-colors">
+                    <EditableText
+                      elementKey="footerLink4"
+                      config={config}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'footerLink4'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                      as="span"
+                    />
+                  </a>
+                  <a href="#" className="hover:text-white transition-colors">
+                    <EditableText
+                      elementKey="footerLink5"
+                      config={config}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'footerLink5'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                      as="span"
+                    />
+                  </a>
+                  <a href="#" className="hover:text-white transition-colors">
+                    <EditableText
+                      elementKey="footerLink6"
+                      config={config}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'footerLink6'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                      as="span"
+                    />
+                  </a>
                 </div>
               </div>
             </footer>
