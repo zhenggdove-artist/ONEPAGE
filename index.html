@@ -345,7 +345,10 @@
       },
       layout: {
         mediaUrl: "https://picsum.photos/1200/800",
-        isMediaVideo: false
+        isMediaVideo: false,
+        videoScale: 100,
+        videoOffsetX: 0,
+        videoOffsetY: 0
       },
       artwork: {
         price: 0.85,
@@ -714,7 +717,10 @@
         code += `      },\n`;
         code += `      layout: {\n`;
         code += `        mediaUrl: "${config.layout.mediaUrl}",\n`;
-        code += `        isMediaVideo: ${config.layout.isMediaVideo}\n`;
+        code += `        isMediaVideo: ${config.layout.isMediaVideo},\n`;
+        code += `        videoScale: ${config.layout.videoScale || 100},\n`;
+        code += `        videoOffsetX: ${config.layout.videoOffsetX || 0},\n`;
+        code += `        videoOffsetY: ${config.layout.videoOffsetY || 0}\n`;
         code += `      },\n`;
         code += `      artwork: {\n`;
         code += `        price: ${config.artwork.price},\n`;
@@ -892,16 +898,30 @@
                 {(() => {
                   const mediaType = getMediaType(config.layout.mediaUrl);
                   const youtubeId = getYouTubeVideoId(config.layout.mediaUrl);
+                  const scale = (config.layout.videoScale || 100) / 100;
+                  const offsetX = config.layout.videoOffsetX || 0;
+                  const offsetY = config.layout.videoOffsetY || 0;
 
                   if (mediaType === 'youtube' && youtubeId) {
                     return (
-                      <iframe
-                        src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1`}
-                        className="w-full h-full object-cover"
-                        style={{ border: 'none', pointerEvents: isEditMode ? 'none' : 'auto' }}
-                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                        allowFullScreen
-                      />
+                      <div className="absolute inset-0 overflow-hidden">
+                        <iframe
+                          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1`}
+                          className="absolute"
+                          style={{
+                            border: 'none',
+                            pointerEvents: isEditMode ? 'none' : 'auto',
+                            width: '100%',
+                            height: '100%',
+                            transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
+                            transformOrigin: 'center center',
+                            top: 0,
+                            left: 0
+                          }}
+                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                          allowFullScreen
+                        />
+                      </div>
                     );
                   } else if (mediaType === 'video') {
                     return (
@@ -909,6 +929,10 @@
                         src={config.layout.mediaUrl}
                         autoPlay loop muted playsInline
                         className="w-full h-full object-cover grayscale contrast-125 opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+                        style={{
+                          transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
+                          transformOrigin: 'center center'
+                        }}
                       />
                     );
                   } else {
@@ -916,6 +940,10 @@
                       <img
                         src={config.layout.mediaUrl}
                         className="w-full h-full object-cover grayscale contrast-125 opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+                        style={{
+                          transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
+                          transformOrigin: 'center center'
+                        }}
                         alt="Artwork"
                       />
                     );
@@ -932,9 +960,72 @@
                   <span className="text-[9px] tracking-widest opacity-60 uppercase">Live_Render</span>
                 </div>
 
-                {/* Edit media button */}
+                {/* Edit media controls */}
                 {isEditMode && (
-                  <div className="absolute bottom-8 right-8 z-[5]">
+                  <div className="absolute bottom-4 right-4 z-[5] flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                    {/* Video Scale & Position Controls */}
+                    <div className="glass-morphism p-3 rounded-lg space-y-2">
+                      <div className="text-[9px] text-zinc-400 uppercase tracking-wider mb-2">影片/圖片調整</div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-zinc-500 w-12">縮放</span>
+                        <input
+                          type="range"
+                          min="100"
+                          max="200"
+                          value={config.layout.videoScale || 100}
+                          onChange={e => setConfig(prev => ({
+                            ...prev,
+                            layout: { ...prev.layout, videoScale: parseInt(e.target.value) }
+                          }))}
+                          className="flex-1 accent-blue-500"
+                        />
+                        <span className="text-[10px] text-zinc-400 w-10">{config.layout.videoScale || 100}%</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-zinc-500 w-12">X 位移</span>
+                        <input
+                          type="range"
+                          min="-100"
+                          max="100"
+                          value={config.layout.videoOffsetX || 0}
+                          onChange={e => setConfig(prev => ({
+                            ...prev,
+                            layout: { ...prev.layout, videoOffsetX: parseInt(e.target.value) }
+                          }))}
+                          className="flex-1 accent-blue-500"
+                        />
+                        <span className="text-[10px] text-zinc-400 w-10">{config.layout.videoOffsetX || 0}px</span>
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-zinc-500 w-12">Y 位移</span>
+                        <input
+                          type="range"
+                          min="-100"
+                          max="100"
+                          value={config.layout.videoOffsetY || 0}
+                          onChange={e => setConfig(prev => ({
+                            ...prev,
+                            layout: { ...prev.layout, videoOffsetY: parseInt(e.target.value) }
+                          }))}
+                          className="flex-1 accent-blue-500"
+                        />
+                        <span className="text-[10px] text-zinc-400 w-10">{config.layout.videoOffsetY || 0}px</span>
+                      </div>
+
+                      <button
+                        onClick={() => setConfig(prev => ({
+                          ...prev,
+                          layout: { ...prev.layout, videoScale: 100, videoOffsetX: 0, videoOffsetY: 0 }
+                        }))}
+                        className="w-full mt-1 py-1 text-[9px] border border-zinc-700 rounded hover:bg-zinc-800 text-zinc-400"
+                      >
+                        重置
+                      </button>
+                    </div>
+
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
@@ -951,7 +1042,7 @@
                           }));
                         }
                       }}
-                      className="px-3 py-1.5 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                      className="px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 font-bold"
                     >
                       更換媒體
                     </button>
