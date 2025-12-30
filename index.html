@@ -45,7 +45,6 @@
     ::-webkit-scrollbar-track { background: #000; }
     ::-webkit-scrollbar-thumb { background: #333; border-radius: 10px; }
 
-    /* Editable Element Styles */
     .editable-element {
       position: relative;
       transition: all 0.2s ease;
@@ -62,7 +61,6 @@
       outline-offset: 4px;
     }
 
-    /* Floating Toolbar */
     .floating-toolbar {
       position: fixed;
       background: rgba(24, 24, 27, 0.98);
@@ -73,9 +71,10 @@
       box-shadow: 0 20px 40px rgba(0,0,0,0.5);
       z-index: 1000;
       min-width: 320px;
+      max-height: 80vh;
+      overflow-y: auto;
     }
 
-    /* Color Picker */
     .color-picker-wrap input[type="color"] {
       -webkit-appearance: none;
       width: 32px;
@@ -93,7 +92,6 @@
       border-radius: 50%;
     }
 
-    /* Edit Mode Banner */
     .edit-mode-banner {
       position: fixed;
       top: 0;
@@ -110,12 +108,7 @@
       justify-content: center;
       align-items: center;
       gap: 16px;
-    }
-
-    /* Dragging styles */
-    .dragging {
-      opacity: 0.8;
-      cursor: grabbing !important;
+      flex-wrap: wrap;
     }
 
     @keyframes pulse-border {
@@ -124,6 +117,40 @@
     }
     .pulse-hint {
       animation: pulse-border 2s infinite;
+    }
+
+    /* Device Preview Mode */
+    .mobile-preview-container {
+      max-width: 430px;
+      margin: 0 auto;
+      border: 3px solid #333;
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 0 60px rgba(0,0,0,0.8);
+    }
+
+    .device-switcher {
+      display: flex;
+      gap: 4px;
+      background: rgba(0,0,0,0.5);
+      padding: 4px;
+      border-radius: 8px;
+    }
+    .device-switcher button {
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 10px;
+      font-weight: bold;
+      transition: all 0.2s;
+    }
+    .device-switcher button.active {
+      background: white;
+      color: black;
+    }
+    .device-switcher button:not(.active) {
+      background: transparent;
+      color: white;
+      border: 1px solid rgba(255,255,255,0.2);
     }
   </style>
 </head>
@@ -162,194 +189,98 @@
       ]
     };
 
-    // Default Configuration
+    // Helper to create element style config
+    const createElementStyle = (fontSize, fontFamily, fontFamilyZh, color, offsetX = 0, offsetY = 0, textEffect = 'none', bgColor = null) => ({
+      fontSize, fontFamily, fontFamilyZh, color, offsetX, offsetY, textEffect, ...(bgColor && { bgColor })
+    });
+
+    // Default Configuration - NEW STRUCTURE
+    // texts: shared between desktop/mobile
+    // desktop/mobile: independent layout configs
     const DEFAULT_CONFIG = {
-      elements: {
-        navBrand: {
-          en: "LIQUID_METALS_COLL",
-          zh: "液態金屬集體",
-          fontSize: 14,
-          fontFamily: 'Orbitron',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#ffffff",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
+      // Shared text content
+      texts: {
+        navBrand: { en: "LIQUID_METALS_COLL", zh: "液態金屬集體" },
+        navLink1: { en: "Archive", zh: "封存" },
+        navLink2: { en: "Fragments", zh: "碎片" },
+        heroTitle: { en: "METALMORPHOSIS", zh: "金屬蛻變" },
+        heroSubtitle: { en: "A LIQUID ODYSSEY IN DIGITAL CHROME", zh: "數位鉻合金中的液態奧德賽" },
+        orderTitle: { en: "ACQUISITION PORTAL", zh: "獲取傳送門" },
+        orderDescription: { en: "Secure your place in the collective. Each piece is generated via neural fluid simulations and serialized on-chain.", zh: "確保您在集體中的位置。每件作品都通過神經流體模擬生成，並在鏈上序列化。" },
+        ctaButton: { en: "RESERVE FRAGMENT", zh: "預約碎片" },
+        footerBrand: { en: "ACID_LABS © 2024", zh: "ACID_LABS © 2024" },
+        footerDescription: { en: "Explorations in digital materiality and neural aesthetics. Built on the edge of the void.", zh: "探索數位物質性與神經美學。建立在虛空的邊緣。" },
+        footerLink1: { en: "Manifesto", zh: "宣言" },
+        footerLink2: { en: "Whitepaper", zh: "白皮書" },
+        footerLink3: { en: "Discord", zh: "Discord" },
+        footerLink4: { en: "Privacy", zh: "隱私" },
+        footerLink5: { en: "Terms", zh: "條款" },
+        footerLink6: { en: "Contract", zh: "合約" }
+      },
+
+      // Desktop Layout Config
+      desktop: {
+        elements: {
+          navBrand: createElementStyle(14, 'Orbitron', 'Noto Sans TC', '#ffffff'),
+          navLink1: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#71717a'),
+          navLink2: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#71717a'),
+          heroTitle: createElementStyle(96, 'Syncopate', 'Noto Sans TC', '#00FF41', 0, 0, 'chrometype'),
+          heroSubtitle: createElementStyle(14, 'Orbitron', 'Noto Sans TC', '#a1a1aa'),
+          orderTitle: createElementStyle(32, 'Syncopate', 'Noto Sans TC', '#00FF41'),
+          orderDescription: createElementStyle(14, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          ctaButton: createElementStyle(12, 'Space Mono', 'Noto Sans TC', '#000000', 0, 0, 'none', '#FF00F5'),
+          footerBrand: createElementStyle(12, 'Orbitron', 'Noto Sans TC', '#ffffff'),
+          footerDescription: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink1: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink2: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink3: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink4: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink5: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink6: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#a1a1aa')
         },
-        navLink1: {
-          en: "Archive",
-          zh: "封存",
-          fontSize: 10,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#71717a",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        navLink2: {
-          en: "Fragments",
-          zh: "碎片",
-          fontSize: 10,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#71717a",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        heroTitle: {
-          en: "METALMORPHOSIS",
-          zh: "金屬蛻變",
-          fontSize: 96,
-          fontFamily: 'Syncopate',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#00FF41",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'chrometype'
-        },
-        heroSubtitle: {
-          en: "A LIQUID ODYSSEY IN DIGITAL CHROME",
-          zh: "數位鉻合金中的液態奧德賽",
-          fontSize: 14,
-          fontFamily: 'Orbitron',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#a1a1aa",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        orderTitle: {
-          en: "ACQUISITION PORTAL",
-          zh: "獲取傳送門",
-          fontSize: 32,
-          fontFamily: 'Syncopate',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#00FF41",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        orderDescription: {
-          en: "Secure your place in the collective. Each piece is generated via neural fluid simulations and serialized on-chain.",
-          zh: "確保您在集體中的位置。每件作品都通過神經流體模擬生成，並在鏈上序列化。",
-          fontSize: 14,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#a1a1aa",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        ctaButton: {
-          en: "RESERVE FRAGMENT",
-          zh: "預約碎片",
-          fontSize: 12,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#000000",
-          bgColor: "#FF00F5",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        footerBrand: {
-          en: "ACID_LABS © 2024",
-          zh: "ACID_LABS © 2024",
-          fontSize: 12,
-          fontFamily: 'Orbitron',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#ffffff",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        footerDescription: {
-          en: "Explorations in digital materiality and neural aesthetics. Built on the edge of the void.",
-          zh: "探索數位物質性與神經美學。建立在虛空的邊緣。",
-          fontSize: 10,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#a1a1aa",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        footerLink1: {
-          en: "Manifesto",
-          zh: "宣言",
-          fontSize: 10,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#a1a1aa",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        footerLink2: {
-          en: "Whitepaper",
-          zh: "白皮書",
-          fontSize: 10,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#a1a1aa",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        footerLink3: {
-          en: "Discord",
-          zh: "Discord",
-          fontSize: 10,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#a1a1aa",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        footerLink4: {
-          en: "Privacy",
-          zh: "隱私",
-          fontSize: 10,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#a1a1aa",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        footerLink5: {
-          en: "Terms",
-          zh: "條款",
-          fontSize: 10,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#a1a1aa",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
-        },
-        footerLink6: {
-          en: "Contract",
-          zh: "合約",
-          fontSize: 10,
-          fontFamily: 'Space Mono',
-          fontFamilyZh: 'Noto Sans TC',
-          color: "#a1a1aa",
-          offsetX: 0,
-          offsetY: 0,
-          textEffect: 'none'
+        layout: {
+          mediaUrl: "https://picsum.photos/1200/800",
+          isMediaVideo: false,
+          videoScale: 100,
+          videoOffsetX: 0,
+          videoOffsetY: 0,
+          frameWidth: 100,
+          frameAspectRatio: "21/9"
         }
       },
-      layout: {
-        mediaUrl: "https://picsum.photos/1200/800",
-        isMediaVideo: false,
-        videoScale: 100,
-        videoOffsetX: 0,
-        videoOffsetY: 0
+
+      // Mobile Layout Config
+      mobile: {
+        elements: {
+          navBrand: createElementStyle(11, 'Orbitron', 'Noto Sans TC', '#ffffff'),
+          navLink1: createElementStyle(9, 'Space Mono', 'Noto Sans TC', '#71717a'),
+          navLink2: createElementStyle(9, 'Space Mono', 'Noto Sans TC', '#71717a'),
+          heroTitle: createElementStyle(36, 'Syncopate', 'Noto Sans TC', '#00FF41', 0, 0, 'chrometype'),
+          heroSubtitle: createElementStyle(10, 'Orbitron', 'Noto Sans TC', '#a1a1aa'),
+          orderTitle: createElementStyle(20, 'Syncopate', 'Noto Sans TC', '#00FF41'),
+          orderDescription: createElementStyle(12, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          ctaButton: createElementStyle(10, 'Space Mono', 'Noto Sans TC', '#000000', 0, 0, 'none', '#FF00F5'),
+          footerBrand: createElementStyle(10, 'Orbitron', 'Noto Sans TC', '#ffffff'),
+          footerDescription: createElementStyle(9, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink1: createElementStyle(9, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink2: createElementStyle(9, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink3: createElementStyle(9, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink4: createElementStyle(9, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink5: createElementStyle(9, 'Space Mono', 'Noto Sans TC', '#a1a1aa'),
+          footerLink6: createElementStyle(9, 'Space Mono', 'Noto Sans TC', '#a1a1aa')
+        },
+        layout: {
+          mediaUrl: "https://picsum.photos/1200/800",
+          isMediaVideo: false,
+          videoScale: 100,
+          videoOffsetX: 0,
+          videoOffsetY: 0,
+          frameWidth: 100,
+          frameAspectRatio: "16/9"
+        }
       },
+
+      // Shared artwork info
       artwork: {
         price: 0.85,
         edition: "01/50"
@@ -371,16 +302,21 @@
     );
 
     // Floating Toolbar Component
-    const FloatingToolbar = ({ element, elementKey, config, updateElement, position, onClose, lang }) => {
+    const FloatingToolbar = ({ elementKey, config, deviceMode, updateElement, updateText, position, onClose, lang }) => {
       const toolbarRef = useRef(null);
-      const data = config.elements[elementKey];
+      const deviceConfig = config[deviceMode];
+      const styleData = deviceConfig.elements[elementKey];
+      const textData = config.texts[elementKey];
       const isZh = lang === 'zh';
 
-      const handleChange = (key, value) => {
-        updateElement(elementKey, { ...data, [key]: value });
+      const handleStyleChange = (key, value) => {
+        updateElement(deviceMode, elementKey, { ...styleData, [key]: value });
       };
 
-      // Adjust toolbar position to stay in viewport
+      const handleTextChange = (langKey, value) => {
+        updateText(elementKey, { ...textData, [langKey]: value });
+      };
+
       const [adjustedPos, setAdjustedPos] = useState(position);
 
       useEffect(() => {
@@ -395,7 +331,7 @@
           if (position.y + rect.height > window.innerHeight - 20) {
             newY = position.y - rect.height - 20;
           }
-          if (newY < 60) newY = 60;
+          if (newY < 80) newY = 80;
 
           setAdjustedPos({ x: Math.max(20, newX), y: newY });
         }
@@ -409,196 +345,222 @@
           onClick={e => e.stopPropagation()}
         >
           <div className="flex justify-between items-center mb-3 pb-2 border-b border-zinc-700">
-            <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">編輯元素</span>
+            <div>
+              <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">編輯元素</span>
+              <span className="ml-2 text-[10px] px-2 py-0.5 rounded bg-purple-600 text-white">
+                {deviceMode === 'desktop' ? '電腦版' : '手機版'}
+              </span>
+            </div>
             <button onClick={onClose} className="text-zinc-500 hover:text-white text-lg leading-none">&times;</button>
           </div>
 
-          {/* Text Content */}
-          <div className="mb-4">
-            <label className="text-[10px] text-zinc-500 block mb-1">文字內容 ({isZh ? '中文' : 'English'})</label>
-            <textarea
-              value={isZh ? data.zh : data.en}
-              onChange={e => handleChange(isZh ? 'zh' : 'en', e.target.value)}
-              className="w-full bg-black/60 border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-blue-500 resize-none"
-              rows={2}
-            />
-          </div>
-
-          {/* Font Size & Color */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <label className="text-[10px] text-zinc-500 block mb-1">字體大小</label>
-              <div className="flex items-center gap-2">
-                <input
-                  type="range"
-                  min="10"
-                  max="150"
-                  value={data.fontSize}
-                  onChange={e => handleChange('fontSize', parseInt(e.target.value))}
-                  className="flex-1 accent-blue-500"
+          {/* Text Content - Shared */}
+          <div className="mb-4 p-3 bg-green-900/20 border border-green-700/30 rounded">
+            <label className="text-[10px] text-green-400 block mb-1">📝 文字內容 (共用於兩版本)</label>
+            <div className="space-y-2">
+              <div>
+                <label className="text-[9px] text-zinc-500">English</label>
+                <textarea
+                  value={textData.en}
+                  onChange={e => handleTextChange('en', e.target.value)}
+                  className="w-full bg-black/60 border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-green-500 resize-none"
+                  rows={1}
                 />
-                <span className="text-xs text-zinc-400 w-8">{data.fontSize}</span>
               </div>
-            </div>
-            <div>
-              <label className="text-[10px] text-zinc-500 block mb-1">顏色</label>
-              <div className="flex items-center gap-2 color-picker-wrap">
-                <input
-                  type="color"
-                  value={data.color}
-                  onChange={e => handleChange('color', e.target.value)}
-                />
-                <input
-                  type="text"
-                  value={data.color}
-                  onChange={e => handleChange('color', e.target.value)}
-                  className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 uppercase"
+              <div>
+                <label className="text-[9px] text-zinc-500">中文</label>
+                <textarea
+                  value={textData.zh}
+                  onChange={e => handleTextChange('zh', e.target.value)}
+                  className="w-full bg-black/60 border border-zinc-700 rounded px-3 py-2 text-sm focus:outline-none focus:border-green-500 resize-none"
+                  rows={1}
                 />
               </div>
             </div>
           </div>
 
-          {/* Font Family */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <label className="text-[10px] text-zinc-500 block mb-1">英文字體</label>
-              <select
-                value={data.fontFamily}
-                onChange={e => handleChange('fontFamily', e.target.value)}
-                className="w-full bg-black/60 border border-zinc-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500"
-              >
-                {FONTS.display.map(f => (
-                  <option key={f.name} value={f.name}>{f.label}</option>
-                ))}
-                <option value="Space Mono">Space Mono</option>
-              </select>
-            </div>
-            <div>
-              <label className="text-[10px] text-zinc-500 block mb-1">中文字體</label>
-              <select
-                value={data.fontFamilyZh}
-                onChange={e => handleChange('fontFamilyZh', e.target.value)}
-                className="w-full bg-black/60 border border-zinc-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500"
-              >
-                {FONTS.chinese.map(f => (
-                  <option key={f.name} value={f.name}>{f.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
+          {/* Style Settings - Device Specific */}
+          <div className="mb-3 p-3 bg-blue-900/20 border border-blue-700/30 rounded">
+            <label className="text-[10px] text-blue-400 block mb-2">🎨 樣式設定 (僅 {deviceMode === 'desktop' ? '電腦版' : '手機版'})</label>
 
-          {/* Position Offset */}
-          <div className="grid grid-cols-2 gap-3 mb-4">
-            <div>
-              <label className="text-[10px] text-zinc-500 block mb-1">X 位移</label>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => handleChange('offsetX', data.offsetX - 10)}
-                  className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
-                >-10</button>
-                <input
-                  type="number"
-                  value={data.offsetX}
-                  onChange={e => handleChange('offsetX', parseInt(e.target.value) || 0)}
-                  className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-center focus:outline-none focus:border-blue-500 w-12"
-                />
-                <button
-                  onClick={() => handleChange('offsetX', data.offsetX + 10)}
-                  className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
-                >+10</button>
+            {/* Font Size & Color */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="text-[10px] text-zinc-500 block mb-1">字體大小</label>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="range"
+                    min="8"
+                    max="150"
+                    value={styleData.fontSize}
+                    onChange={e => handleStyleChange('fontSize', parseInt(e.target.value))}
+                    className="flex-1 accent-blue-500"
+                  />
+                  <span className="text-xs text-zinc-400 w-8">{styleData.fontSize}</span>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-zinc-500 block mb-1">顏色</label>
+                <div className="flex items-center gap-2 color-picker-wrap">
+                  <input
+                    type="color"
+                    value={styleData.color}
+                    onChange={e => handleStyleChange('color', e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    value={styleData.color}
+                    onChange={e => handleStyleChange('color', e.target.value)}
+                    className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 uppercase w-20"
+                  />
+                </div>
               </div>
             </div>
-            <div>
-              <label className="text-[10px] text-zinc-500 block mb-1">Y 位移</label>
-              <div className="flex items-center gap-1">
-                <button
-                  onClick={() => handleChange('offsetY', data.offsetY - 10)}
-                  className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
-                >-10</button>
-                <input
-                  type="number"
-                  value={data.offsetY}
-                  onChange={e => handleChange('offsetY', parseInt(e.target.value) || 0)}
-                  className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-center focus:outline-none focus:border-blue-500 w-12"
-                />
-                <button
-                  onClick={() => handleChange('offsetY', data.offsetY + 10)}
-                  className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
-                >+10</button>
-              </div>
-            </div>
-          </div>
 
-          {/* Text Effect */}
-          <div className="mb-4">
-            <label className="text-[10px] text-zinc-500 block mb-1">文字特效</label>
-            <div className="flex gap-2">
-              {['none', 'glow', 'chrometype', 'distort'].map(effect => (
-                <button
-                  key={effect}
-                  onClick={() => handleChange('textEffect', effect)}
-                  className={`flex-1 py-1.5 text-[10px] rounded border transition-all ${
-                    data.textEffect === effect
-                      ? 'bg-blue-600 border-blue-500 text-white'
-                      : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
-                  }`}
+            {/* Font Family */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="text-[10px] text-zinc-500 block mb-1">英文字體</label>
+                <select
+                  value={styleData.fontFamily}
+                  onChange={e => handleStyleChange('fontFamily', e.target.value)}
+                  className="w-full bg-black/60 border border-zinc-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500"
                 >
-                  {effect === 'none' ? '無' : effect === 'glow' ? '發光' : effect === 'chrometype' ? '金屬' : '扭曲'}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          {/* Background Color for Button */}
-          {elementKey === 'ctaButton' && (
-            <div className="mb-4">
-              <label className="text-[10px] text-zinc-500 block mb-1">按鈕背景色</label>
-              <div className="flex items-center gap-2 color-picker-wrap">
-                <input
-                  type="color"
-                  value={data.bgColor || '#FF00F5'}
-                  onChange={e => handleChange('bgColor', e.target.value)}
-                />
-                <input
-                  type="text"
-                  value={data.bgColor || '#FF00F5'}
-                  onChange={e => handleChange('bgColor', e.target.value)}
-                  className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 uppercase"
-                />
+                  {FONTS.display.map(f => (
+                    <option key={f.name} value={f.name}>{f.label}</option>
+                  ))}
+                  <option value="Space Mono">Space Mono</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-[10px] text-zinc-500 block mb-1">中文字體</label>
+                <select
+                  value={styleData.fontFamilyZh}
+                  onChange={e => handleStyleChange('fontFamilyZh', e.target.value)}
+                  className="w-full bg-black/60 border border-zinc-700 rounded px-2 py-1.5 text-xs focus:outline-none focus:border-blue-500"
+                >
+                  {FONTS.chinese.map(f => (
+                    <option key={f.name} value={f.name}>{f.label}</option>
+                  ))}
+                </select>
               </div>
             </div>
-          )}
+
+            {/* Position Offset */}
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="text-[10px] text-zinc-500 block mb-1">X 位移</label>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleStyleChange('offsetX', styleData.offsetX - 10)}
+                    className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
+                  >-10</button>
+                  <input
+                    type="number"
+                    value={styleData.offsetX}
+                    onChange={e => handleStyleChange('offsetX', parseInt(e.target.value) || 0)}
+                    className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-center focus:outline-none focus:border-blue-500 w-12"
+                  />
+                  <button
+                    onClick={() => handleStyleChange('offsetX', styleData.offsetX + 10)}
+                    className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
+                  >+10</button>
+                </div>
+              </div>
+              <div>
+                <label className="text-[10px] text-zinc-500 block mb-1">Y 位移</label>
+                <div className="flex items-center gap-1">
+                  <button
+                    onClick={() => handleStyleChange('offsetY', styleData.offsetY - 10)}
+                    className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
+                  >-10</button>
+                  <input
+                    type="number"
+                    value={styleData.offsetY}
+                    onChange={e => handleStyleChange('offsetY', parseInt(e.target.value) || 0)}
+                    className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs text-center focus:outline-none focus:border-blue-500 w-12"
+                  />
+                  <button
+                    onClick={() => handleStyleChange('offsetY', styleData.offsetY + 10)}
+                    className="px-2 py-1 bg-zinc-800 rounded hover:bg-zinc-700 text-xs"
+                  >+10</button>
+                </div>
+              </div>
+            </div>
+
+            {/* Text Effect */}
+            <div className="mb-3">
+              <label className="text-[10px] text-zinc-500 block mb-1">文字特效</label>
+              <div className="flex gap-2">
+                {['none', 'glow', 'chrometype', 'distort'].map(effect => (
+                  <button
+                    key={effect}
+                    onClick={() => handleStyleChange('textEffect', effect)}
+                    className={`flex-1 py-1.5 text-[10px] rounded border transition-all ${
+                      styleData.textEffect === effect
+                        ? 'bg-blue-600 border-blue-500 text-white'
+                        : 'border-zinc-700 text-zinc-400 hover:border-zinc-500'
+                    }`}
+                  >
+                    {effect === 'none' ? '無' : effect === 'glow' ? '發光' : effect === 'chrometype' ? '金屬' : '扭曲'}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {/* Background Color for Button */}
+            {elementKey === 'ctaButton' && (
+              <div>
+                <label className="text-[10px] text-zinc-500 block mb-1">按鈕背景色</label>
+                <div className="flex items-center gap-2 color-picker-wrap">
+                  <input
+                    type="color"
+                    value={styleData.bgColor || '#FF00F5'}
+                    onChange={e => handleStyleChange('bgColor', e.target.value)}
+                  />
+                  <input
+                    type="text"
+                    value={styleData.bgColor || '#FF00F5'}
+                    onChange={e => handleStyleChange('bgColor', e.target.value)}
+                    className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-xs focus:outline-none focus:border-blue-500 uppercase"
+                  />
+                </div>
+              </div>
+            )}
+          </div>
         </div>
       );
     };
 
     // Editable Text Component
-    const EditableText = ({ elementKey, config, isEditMode, onSelect, isSelected, lang, as: Component = 'span', className = '', style = {} }) => {
+    const EditableText = ({ elementKey, config, deviceMode, isEditMode, onSelect, isSelected, lang, as: Component = 'span', className = '', style = {} }) => {
       const ref = useRef(null);
-      const data = config.elements[elementKey];
+      const deviceConfig = config[deviceMode];
+      const styleData = deviceConfig.elements[elementKey];
+      const textData = config.texts[elementKey];
       const isZh = lang === 'zh';
-      const text = isZh ? data.zh : data.en;
+      const text = isZh ? textData.zh : textData.en;
 
       const getTextStyle = () => {
         const baseStyle = {
-          fontSize: `${data.fontSize}px`,
-          fontFamily: isZh ? data.fontFamilyZh : data.fontFamily,
-          color: data.color,
-          transform: `translate(${data.offsetX}px, ${data.offsetY}px)`,
+          fontSize: `${styleData.fontSize}px`,
+          fontFamily: isZh ? styleData.fontFamilyZh : styleData.fontFamily,
+          color: styleData.color,
+          transform: `translate(${styleData.offsetX}px, ${styleData.offsetY}px)`,
           display: 'inline-block',
           ...style
         };
 
-        if (data.textEffect === 'glow') {
-          baseStyle.textShadow = `0 0 20px ${data.color}, 0 0 40px ${data.color}`;
-        } else if (data.textEffect === 'chrometype') {
-          baseStyle.background = `linear-gradient(to bottom, #fff 0%, ${data.color} 50%, #000 100%)`;
+        if (styleData.textEffect === 'glow') {
+          baseStyle.textShadow = `0 0 20px ${styleData.color}, 0 0 40px ${styleData.color}`;
+        } else if (styleData.textEffect === 'chrometype') {
+          baseStyle.background = `linear-gradient(to bottom, #fff 0%, ${styleData.color} 50%, #000 100%)`;
           baseStyle.WebkitBackgroundClip = 'text';
           baseStyle.WebkitTextFillColor = 'transparent';
           baseStyle.filter = 'drop-shadow(2px 2px 2px rgba(0,0,0,0.5)) contrast(1.5)';
-        } else if (data.textEffect === 'distort') {
+        } else if (styleData.textEffect === 'distort') {
           baseStyle.fontStyle = 'italic';
-          baseStyle.transform = `translate(${data.offsetX}px, ${data.offsetY}px) skew(-10deg)`;
+          baseStyle.transform = `translate(${styleData.offsetX}px, ${styleData.offsetY}px) skew(-10deg)`;
         }
 
         return baseStyle;
@@ -635,9 +597,24 @@
       const [selectedElement, setSelectedElement] = useState(null);
       const [toolbarPosition, setToolbarPosition] = useState({ x: 0, y: 0 });
       const [isExportModalOpen, setIsExportModalOpen] = useState(false);
+      const [deviceMode, setDeviceMode] = useState('desktop'); // 'desktop' or 'mobile'
+      const [previewDevice, setPreviewDevice] = useState('desktop'); // for non-edit viewing
 
+      // Detect actual device
       useEffect(() => {
-        const saved = localStorage.getItem('acid_config_v2');
+        const checkDevice = () => {
+          if (!isEditMode) {
+            setPreviewDevice(window.innerWidth < 768 ? 'mobile' : 'desktop');
+          }
+        };
+        checkDevice();
+        window.addEventListener('resize', checkDevice);
+        return () => window.removeEventListener('resize', checkDevice);
+      }, [isEditMode]);
+
+      // Load saved config
+      useEffect(() => {
+        const saved = localStorage.getItem('acid_config_v3');
         if (saved) {
           try {
             const parsed = JSON.parse(saved);
@@ -647,6 +624,9 @@
           }
         }
       }, []);
+
+      const activeDevice = isEditMode ? deviceMode : previewDevice;
+      const deviceConfig = config[activeDevice];
 
       const handleAdminInit = () => {
         if (isAuthenticated) {
@@ -677,51 +657,90 @@
         setSelectedElement(null);
       };
 
-      const updateElement = (key, newData) => {
+      const updateElement = (device, key, newData) => {
         setConfig(prev => ({
           ...prev,
-          elements: { ...prev.elements, [key]: newData }
+          [device]: {
+            ...prev[device],
+            elements: { ...prev[device].elements, [key]: newData }
+          }
+        }));
+      };
+
+      const updateText = (key, newData) => {
+        setConfig(prev => ({
+          ...prev,
+          texts: { ...prev.texts, [key]: newData }
+        }));
+      };
+
+      const updateLayout = (device, newLayout) => {
+        setConfig(prev => ({
+          ...prev,
+          [device]: {
+            ...prev[device],
+            layout: { ...prev[device].layout, ...newLayout }
+          }
         }));
       };
 
       const saveConfig = () => {
-        localStorage.setItem('acid_config_v2', JSON.stringify(config));
+        localStorage.setItem('acid_config_v3', JSON.stringify(config));
         alert('設定已儲存！');
       };
 
+      // Generate export code
       const generateExportCode = () => {
-        const formatElement = (el) => {
-          let code = '{\n';
-          code += `          en: "${el.en}",\n`;
-          code += `          zh: "${el.zh}",\n`;
-          code += `          fontSize: ${el.fontSize},\n`;
-          code += `          fontFamily: '${el.fontFamily}',\n`;
-          code += `          fontFamilyZh: '${el.fontFamilyZh}',\n`;
-          code += `          color: "${el.color}",\n`;
-          if (el.bgColor) code += `          bgColor: "${el.bgColor}",\n`;
-          code += `          offsetX: ${el.offsetX},\n`;
-          code += `          offsetY: ${el.offsetY},\n`;
-          code += `          textEffect: '${el.textEffect}'\n`;
-          code += '        }';
+        const formatElementStyle = (el) => {
+          let code = `createElementStyle(${el.fontSize}, '${el.fontFamily}', '${el.fontFamilyZh}', '${el.color}', ${el.offsetX}, ${el.offsetY}, '${el.textEffect}'`;
+          if (el.bgColor) code += `, '${el.bgColor}'`;
+          code += ')';
           return code;
         };
 
         let code = `    const DEFAULT_CONFIG = {\n`;
-        code += `      elements: {\n`;
 
-        Object.keys(config.elements).forEach((key, index, arr) => {
-          code += `        ${key}: ${formatElement(config.elements[key])}`;
-          code += index < arr.length - 1 ? ',\n' : '\n';
+        // Texts
+        code += `      texts: {\n`;
+        Object.keys(config.texts).forEach((key, idx, arr) => {
+          const t = config.texts[key];
+          code += `        ${key}: { en: "${t.en}", zh: "${t.zh}" }${idx < arr.length - 1 ? ',' : ''}\n`;
         });
+        code += `      },\n\n`;
 
-        code += `      },\n`;
-        code += `      layout: {\n`;
-        code += `        mediaUrl: "${config.layout.mediaUrl}",\n`;
-        code += `        isMediaVideo: ${config.layout.isMediaVideo},\n`;
-        code += `        videoScale: ${config.layout.videoScale || 100},\n`;
-        code += `        videoOffsetX: ${config.layout.videoOffsetX || 0},\n`;
-        code += `        videoOffsetY: ${config.layout.videoOffsetY || 0}\n`;
-        code += `      },\n`;
+        // Desktop
+        code += `      desktop: {\n        elements: {\n`;
+        Object.keys(config.desktop.elements).forEach((key, idx, arr) => {
+          code += `          ${key}: ${formatElementStyle(config.desktop.elements[key])}${idx < arr.length - 1 ? ',' : ''}\n`;
+        });
+        code += `        },\n        layout: {\n`;
+        const dl = config.desktop.layout;
+        code += `          mediaUrl: "${dl.mediaUrl}",\n`;
+        code += `          isMediaVideo: ${dl.isMediaVideo},\n`;
+        code += `          videoScale: ${dl.videoScale},\n`;
+        code += `          videoOffsetX: ${dl.videoOffsetX},\n`;
+        code += `          videoOffsetY: ${dl.videoOffsetY},\n`;
+        code += `          frameWidth: ${dl.frameWidth},\n`;
+        code += `          frameAspectRatio: "${dl.frameAspectRatio}"\n`;
+        code += `        }\n      },\n\n`;
+
+        // Mobile
+        code += `      mobile: {\n        elements: {\n`;
+        Object.keys(config.mobile.elements).forEach((key, idx, arr) => {
+          code += `          ${key}: ${formatElementStyle(config.mobile.elements[key])}${idx < arr.length - 1 ? ',' : ''}\n`;
+        });
+        code += `        },\n        layout: {\n`;
+        const ml = config.mobile.layout;
+        code += `          mediaUrl: "${ml.mediaUrl}",\n`;
+        code += `          isMediaVideo: ${ml.isMediaVideo},\n`;
+        code += `          videoScale: ${ml.videoScale},\n`;
+        code += `          videoOffsetX: ${ml.videoOffsetX},\n`;
+        code += `          videoOffsetY: ${ml.videoOffsetY},\n`;
+        code += `          frameWidth: ${ml.frameWidth},\n`;
+        code += `          frameAspectRatio: "${ml.frameAspectRatio}"\n`;
+        code += `        }\n      },\n\n`;
+
+        // Artwork
         code += `      artwork: {\n`;
         code += `        price: ${config.artwork.price},\n`;
         code += `        edition: "${config.artwork.edition}"\n`;
@@ -764,15 +783,26 @@
         if (!url) return 'image';
         const youtubeId = getYouTubeVideoId(url);
         if (youtubeId) return 'youtube';
-        if (config.layout.isMediaVideo) return 'video';
+        if (deviceConfig.layout.isMediaVideo) return 'video';
         return 'image';
       };
 
-      // Close toolbar when clicking outside
       const handleBackgroundClick = () => {
         if (selectedElement) {
           setSelectedElement(null);
         }
+      };
+
+      // Content wrapper - applies mobile preview frame in edit mode
+      const ContentWrapper = ({ children }) => {
+        if (isEditMode && deviceMode === 'mobile') {
+          return (
+            <div className="mobile-preview-container">
+              {children}
+            </div>
+          );
+        }
+        return children;
       };
 
       return (
@@ -782,24 +812,41 @@
           {/* Edit Mode Banner */}
           {isEditMode && (
             <div className="edit-mode-banner">
-              <span>編輯模式 - 點擊任何文字即可編輯</span>
+              <span>編輯模式</span>
+
+              {/* Device Switcher */}
+              <div className="device-switcher">
+                <button
+                  onClick={() => { setDeviceMode('desktop'); setSelectedElement(null); }}
+                  className={deviceMode === 'desktop' ? 'active' : ''}
+                >
+                  💻 電腦版
+                </button>
+                <button
+                  onClick={() => { setDeviceMode('mobile'); setSelectedElement(null); }}
+                  className={deviceMode === 'mobile' ? 'active' : ''}
+                >
+                  📱 手機版
+                </button>
+              </div>
+
               <button
                 onClick={saveConfig}
                 className="px-4 py-1 bg-white text-purple-600 rounded text-xs font-bold hover:bg-gray-100"
               >
-                儲存變更
+                儲存
               </button>
               <button
                 onClick={() => setIsExportModalOpen(true)}
                 className="px-4 py-1 bg-green-500 text-white rounded text-xs font-bold hover:bg-green-600"
               >
-                匯出代碼
+                匯出
               </button>
               <button
                 onClick={exitEditMode}
                 className="px-4 py-1 bg-black/30 rounded text-xs font-bold hover:bg-black/50"
               >
-                退出編輯
+                退出
               </button>
             </div>
           )}
@@ -814,443 +861,476 @@
             </button>
           </div>
 
-          {/* Main UI */}
-          <main className={`relative z-10 container mx-auto px-6 ${isEditMode ? 'pt-20' : 'pt-12'} pb-12 flex flex-col items-center min-h-screen`}>
+          {/* Main Content */}
+          <ContentWrapper>
+            <main className={`relative z-10 container mx-auto px-6 ${isEditMode ? 'pt-20' : 'pt-12'} pb-12 flex flex-col items-center min-h-screen`}>
 
-            {/* Navigation */}
-            <nav className="w-full flex justify-between items-center mb-16">
-              <div className="font-black italic tracking-tighter opacity-80">
-                <EditableText
-                  elementKey="navBrand"
-                  config={config}
-                  isEditMode={isEditMode}
-                  isSelected={selectedElement === 'navBrand'}
-                  onSelect={handleElementSelect}
-                  lang={lang}
-                  as="span"
-                />
-              </div>
-              <div className="flex gap-8 uppercase tracking-[0.2em] font-bold">
-                <button className="hover:text-white transition-colors">
+              {/* Navigation */}
+              <nav className="w-full flex justify-between items-center mb-16">
+                <div className="font-black italic tracking-tighter opacity-80">
                   <EditableText
-                    elementKey="navLink1"
+                    elementKey="navBrand"
                     config={config}
+                    deviceMode={activeDevice}
                     isEditMode={isEditMode}
-                    isSelected={selectedElement === 'navLink1'}
+                    isSelected={selectedElement === 'navBrand'}
                     onSelect={handleElementSelect}
                     lang={lang}
-                    as="span"
                   />
-                </button>
-                <button className="hover:text-white transition-colors">
-                  <EditableText
-                    elementKey="navLink2"
-                    config={config}
-                    isEditMode={isEditMode}
-                    isSelected={selectedElement === 'navLink2'}
-                    onSelect={handleElementSelect}
-                    lang={lang}
-                    as="span"
-                  />
-                </button>
-                {!isEditMode && (
-                  <button
-                    onClick={handleAdminInit}
-                    className="px-4 py-1 border border-zinc-700 hover:bg-white hover:text-black transition-all text-[10px]"
-                  >
-                    System.init()
+                </div>
+                <div className="flex gap-8 uppercase tracking-[0.2em] font-bold">
+                  <button className="hover:text-white transition-colors">
+                    <EditableText
+                      elementKey="navLink1"
+                      config={config}
+                      deviceMode={activeDevice}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'navLink1'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                    />
                   </button>
-                )}
-              </div>
-            </nav>
+                  <button className="hover:text-white transition-colors">
+                    <EditableText
+                      elementKey="navLink2"
+                      config={config}
+                      deviceMode={activeDevice}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'navLink2'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                    />
+                  </button>
+                  {!isEditMode && (
+                    <button
+                      onClick={handleAdminInit}
+                      className="px-4 py-1 border border-zinc-700 hover:bg-white hover:text-black transition-all text-[10px]"
+                    >
+                      System.init()
+                    </button>
+                  )}
+                </div>
+              </nav>
 
-            {/* Hero Section */}
-            <section className="flex flex-col items-center text-center max-w-5xl w-full mb-24">
-              <h1 className="mb-4 leading-none">
-                <EditableText
-                  elementKey="heroTitle"
-                  config={config}
-                  isEditMode={isEditMode}
-                  isSelected={selectedElement === 'heroTitle'}
-                  onSelect={handleElementSelect}
-                  lang={lang}
-                  as="span"
-                  className="font-black"
-                />
-              </h1>
-              <p className="mb-12 uppercase tracking-[0.4em]">
-                <EditableText
-                  elementKey="heroSubtitle"
-                  config={config}
-                  isEditMode={isEditMode}
-                  isSelected={selectedElement === 'heroSubtitle'}
-                  onSelect={handleElementSelect}
-                  lang={lang}
-                  as="span"
-                />
-              </p>
+              {/* Hero Section */}
+              <section className="flex flex-col items-center text-center max-w-5xl w-full mb-24">
+                <h1 className="mb-4 leading-none">
+                  <EditableText
+                    elementKey="heroTitle"
+                    config={config}
+                    deviceMode={activeDevice}
+                    isEditMode={isEditMode}
+                    isSelected={selectedElement === 'heroTitle'}
+                    onSelect={handleElementSelect}
+                    lang={lang}
+                    className="font-black"
+                  />
+                </h1>
+                <p className="mb-12 uppercase tracking-[0.4em]">
+                  <EditableText
+                    elementKey="heroSubtitle"
+                    config={config}
+                    deviceMode={activeDevice}
+                    isEditMode={isEditMode}
+                    isSelected={selectedElement === 'heroSubtitle'}
+                    onSelect={handleElementSelect}
+                    lang={lang}
+                  />
+                </p>
 
-              {/* Media Display */}
-              <div className="relative w-full aspect-video md:aspect-[21/9] glass-morphism overflow-hidden rounded-sm group cursor-crosshair">
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-[2] pointer-events-none"></div>
-                <div className="absolute inset-0 border-[0.5px] border-white/10 z-[3] pointer-events-none"></div>
+                {/* Media Display */}
+                <div
+                  className="relative glass-morphism overflow-hidden rounded-sm group cursor-crosshair"
+                  style={{
+                    width: `${deviceConfig.layout.frameWidth}%`,
+                    aspectRatio: deviceConfig.layout.frameAspectRatio
+                  }}
+                >
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 to-transparent z-[2] pointer-events-none"></div>
+                  <div className="absolute inset-0 border-[0.5px] border-white/10 z-[3] pointer-events-none"></div>
 
-                {(() => {
-                  const mediaType = getMediaType(config.layout.mediaUrl);
-                  const youtubeId = getYouTubeVideoId(config.layout.mediaUrl);
-                  const scale = (config.layout.videoScale || 100) / 100;
-                  const offsetX = config.layout.videoOffsetX || 0;
-                  const offsetY = config.layout.videoOffsetY || 0;
+                  {(() => {
+                    const mediaType = getMediaType(deviceConfig.layout.mediaUrl);
+                    const youtubeId = getYouTubeVideoId(deviceConfig.layout.mediaUrl);
+                    const scale = (deviceConfig.layout.videoScale || 100) / 100;
+                    const offsetX = deviceConfig.layout.videoOffsetX || 0;
+                    const offsetY = deviceConfig.layout.videoOffsetY || 0;
 
-                  if (mediaType === 'youtube' && youtubeId) {
-                    return (
-                      <div className="absolute inset-0 overflow-hidden">
-                        <iframe
-                          src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1`}
-                          className="absolute"
+                    if (mediaType === 'youtube' && youtubeId) {
+                      return (
+                        <div className="absolute inset-0 overflow-hidden">
+                          <iframe
+                            src={`https://www.youtube.com/embed/${youtubeId}?autoplay=1&mute=1&loop=1&playlist=${youtubeId}&controls=0&showinfo=0&rel=0&modestbranding=1&iv_load_policy=3&disablekb=1`}
+                            className="absolute"
+                            style={{
+                              border: 'none',
+                              pointerEvents: isEditMode ? 'none' : 'auto',
+                              width: '100%',
+                              height: '100%',
+                              transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
+                              transformOrigin: 'center center',
+                              top: 0,
+                              left: 0
+                            }}
+                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                            allowFullScreen
+                          />
+                        </div>
+                      );
+                    } else if (mediaType === 'video') {
+                      return (
+                        <video
+                          src={deviceConfig.layout.mediaUrl}
+                          autoPlay loop muted playsInline
+                          className="w-full h-full object-cover grayscale contrast-125 opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
                           style={{
-                            border: 'none',
-                            pointerEvents: isEditMode ? 'none' : 'auto',
-                            width: '100%',
-                            height: '100%',
                             transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
-                            transformOrigin: 'center center',
-                            top: 0,
-                            left: 0
+                            transformOrigin: 'center center'
                           }}
-                          allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                          allowFullScreen
                         />
-                      </div>
-                    );
-                  } else if (mediaType === 'video') {
-                    return (
-                      <video
-                        src={config.layout.mediaUrl}
-                        autoPlay loop muted playsInline
-                        className="w-full h-full object-cover grayscale contrast-125 opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
-                        style={{
-                          transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
-                          transformOrigin: 'center center'
-                        }}
-                      />
-                    );
-                  } else {
-                    return (
-                      <img
-                        src={config.layout.mediaUrl}
-                        className="w-full h-full object-cover grayscale contrast-125 opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
-                        style={{
-                          transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
-                          transformOrigin: 'center center'
-                        }}
-                        alt="Artwork"
-                      />
-                    );
-                  }
-                })()}
-
-                <div className="absolute bottom-8 left-8 z-[5] text-left">
-                  <div className="text-[9px] text-white/40 uppercase mb-1 tracking-widest">fragment_id</div>
-                  <div className="display-font text-lg font-bold tracking-tighter">PROTO-GENESIS_01</div>
-                </div>
-
-                <div className="absolute top-8 right-8 z-[5] flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
-                  <span className="text-[9px] tracking-widest opacity-60 uppercase">Live_Render</span>
-                </div>
-
-                {/* Edit media controls */}
-                {isEditMode && (
-                  <div className="absolute bottom-4 right-4 z-[5] flex flex-col gap-2" onClick={e => e.stopPropagation()}>
-                    {/* Video Scale & Position Controls */}
-                    <div className="glass-morphism p-3 rounded-lg space-y-2">
-                      <div className="text-[9px] text-zinc-400 uppercase tracking-wider mb-2">影片/圖片調整</div>
-
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-zinc-500 w-12">縮放</span>
-                        <input
-                          type="range"
-                          min="100"
-                          max="200"
-                          value={config.layout.videoScale || 100}
-                          onChange={e => setConfig(prev => ({
-                            ...prev,
-                            layout: { ...prev.layout, videoScale: parseInt(e.target.value) }
-                          }))}
-                          className="flex-1 accent-blue-500"
+                      );
+                    } else {
+                      return (
+                        <img
+                          src={deviceConfig.layout.mediaUrl}
+                          className="w-full h-full object-cover grayscale contrast-125 opacity-70 group-hover:grayscale-0 group-hover:opacity-100 transition-all duration-700"
+                          style={{
+                            transform: `scale(${scale}) translate(${offsetX}px, ${offsetY}px)`,
+                            transformOrigin: 'center center'
+                          }}
+                          alt="Artwork"
                         />
-                        <span className="text-[10px] text-zinc-400 w-10">{config.layout.videoScale || 100}%</span>
-                      </div>
+                      );
+                    }
+                  })()}
 
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-zinc-500 w-12">X 位移</span>
-                        <input
-                          type="range"
-                          min="-100"
-                          max="100"
-                          value={config.layout.videoOffsetX || 0}
-                          onChange={e => setConfig(prev => ({
-                            ...prev,
-                            layout: { ...prev.layout, videoOffsetX: parseInt(e.target.value) }
-                          }))}
-                          className="flex-1 accent-blue-500"
-                        />
-                        <span className="text-[10px] text-zinc-400 w-10">{config.layout.videoOffsetX || 0}px</span>
-                      </div>
+                  <div className="absolute bottom-8 left-8 z-[5] text-left">
+                    <div className="text-[9px] text-white/40 uppercase mb-1 tracking-widest">fragment_id</div>
+                    <div className="display-font text-lg font-bold tracking-tighter">PROTO-GENESIS_01</div>
+                  </div>
 
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] text-zinc-500 w-12">Y 位移</span>
-                        <input
-                          type="range"
-                          min="-100"
-                          max="100"
-                          value={config.layout.videoOffsetY || 0}
-                          onChange={e => setConfig(prev => ({
-                            ...prev,
-                            layout: { ...prev.layout, videoOffsetY: parseInt(e.target.value) }
-                          }))}
-                          className="flex-1 accent-blue-500"
-                        />
-                        <span className="text-[10px] text-zinc-400 w-10">{config.layout.videoOffsetY || 0}px</span>
+                  <div className="absolute top-8 right-8 z-[5] flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></div>
+                    <span className="text-[9px] tracking-widest opacity-60 uppercase">Live_Render</span>
+                  </div>
+
+                  {/* Edit media controls */}
+                  {isEditMode && (
+                    <div className="absolute bottom-4 right-4 z-[5] flex flex-col gap-2" onClick={e => e.stopPropagation()}>
+                      <div className="glass-morphism p-3 rounded-lg space-y-2">
+                        <div className="text-[9px] text-zinc-400 uppercase tracking-wider mb-2">
+                          媒體調整 ({deviceMode === 'desktop' ? '電腦版' : '手機版'})
+                        </div>
+
+                        {/* Frame Size */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 w-14">框寬度</span>
+                          <input
+                            type="range"
+                            min="50"
+                            max="100"
+                            value={deviceConfig.layout.frameWidth}
+                            onChange={e => updateLayout(deviceMode, { frameWidth: parseInt(e.target.value) })}
+                            className="flex-1 accent-blue-500"
+                          />
+                          <span className="text-[10px] text-zinc-400 w-10">{deviceConfig.layout.frameWidth}%</span>
+                        </div>
+
+                        {/* Aspect Ratio */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 w-14">比例</span>
+                          <select
+                            value={deviceConfig.layout.frameAspectRatio}
+                            onChange={e => updateLayout(deviceMode, { frameAspectRatio: e.target.value })}
+                            className="flex-1 bg-black/60 border border-zinc-700 rounded px-2 py-1 text-[10px]"
+                          >
+                            <option value="21/9">21:9 寬銀幕</option>
+                            <option value="16/9">16:9 標準</option>
+                            <option value="4/3">4:3 傳統</option>
+                            <option value="1/1">1:1 方形</option>
+                            <option value="9/16">9:16 直式</option>
+                          </select>
+                        </div>
+
+                        {/* Video Scale */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 w-14">縮放</span>
+                          <input
+                            type="range"
+                            min="100"
+                            max="200"
+                            value={deviceConfig.layout.videoScale || 100}
+                            onChange={e => updateLayout(deviceMode, { videoScale: parseInt(e.target.value) })}
+                            className="flex-1 accent-blue-500"
+                          />
+                          <span className="text-[10px] text-zinc-400 w-10">{deviceConfig.layout.videoScale || 100}%</span>
+                        </div>
+
+                        {/* Video Offset X */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 w-14">X 偏移</span>
+                          <input
+                            type="range"
+                            min="-100"
+                            max="100"
+                            value={deviceConfig.layout.videoOffsetX || 0}
+                            onChange={e => updateLayout(deviceMode, { videoOffsetX: parseInt(e.target.value) })}
+                            className="flex-1 accent-blue-500"
+                          />
+                          <span className="text-[10px] text-zinc-400 w-10">{deviceConfig.layout.videoOffsetX || 0}px</span>
+                        </div>
+
+                        {/* Video Offset Y */}
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] text-zinc-500 w-14">Y 偏移</span>
+                          <input
+                            type="range"
+                            min="-100"
+                            max="100"
+                            value={deviceConfig.layout.videoOffsetY || 0}
+                            onChange={e => updateLayout(deviceMode, { videoOffsetY: parseInt(e.target.value) })}
+                            className="flex-1 accent-blue-500"
+                          />
+                          <span className="text-[10px] text-zinc-400 w-10">{deviceConfig.layout.videoOffsetY || 0}px</span>
+                        </div>
+
+                        <button
+                          onClick={() => updateLayout(deviceMode, {
+                            videoScale: 100,
+                            videoOffsetX: 0,
+                            videoOffsetY: 0,
+                            frameWidth: 100,
+                            frameAspectRatio: deviceMode === 'desktop' ? '21/9' : '16/9'
+                          })}
+                          className="w-full mt-1 py-1 text-[9px] border border-zinc-700 rounded hover:bg-zinc-800 text-zinc-400"
+                        >
+                          重置
+                        </button>
                       </div>
 
                       <button
-                        onClick={() => setConfig(prev => ({
-                          ...prev,
-                          layout: { ...prev.layout, videoScale: 100, videoOffsetX: 0, videoOffsetY: 0 }
-                        }))}
-                        className="w-full mt-1 py-1 text-[9px] border border-zinc-700 rounded hover:bg-zinc-800 text-zinc-400"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const url = prompt('輸入媒體 URL:\n\n支援格式:\n• 圖片網址\n• 影片網址\n• YouTube 連結', deviceConfig.layout.mediaUrl);
+                          if (url) {
+                            const isYouTube = getYouTubeVideoId(url) !== null;
+                            let isVideo = isYouTube;
+                            if (!isYouTube) {
+                              isVideo = confirm('這是影片檔案嗎？');
+                            }
+                            updateLayout(deviceMode, { mediaUrl: url, isMediaVideo: isVideo });
+                          }
+                        }}
+                        className="px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 font-bold"
                       >
-                        重置
+                        更換媒體
                       </button>
                     </div>
+                  )}
+                </div>
+              </section>
 
+              {/* Order Section */}
+              <section className="w-full max-w-4xl glass-morphism p-12 mb-24 relative overflow-hidden">
+                <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                  <svg width="200" height="200" viewBox="0 0 100 100">
+                    <circle cx="50" cy="50" r="40" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="2 2" />
+                    <path d="M10 50 L90 50 M50 10 L50 90" stroke="white" strokeWidth="0.5" />
+                  </svg>
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
+                  <div>
+                    <h2 className="mb-6 italic font-bold">
+                      <EditableText
+                        elementKey="orderTitle"
+                        config={config}
+                        deviceMode={activeDevice}
+                        isEditMode={isEditMode}
+                        isSelected={selectedElement === 'orderTitle'}
+                        onSelect={handleElementSelect}
+                        lang={lang}
+                      />
+                    </h2>
+                    <p className="mb-8 font-light italic leading-relaxed">
+                      <EditableText
+                        elementKey="orderDescription"
+                        config={config}
+                        deviceMode={activeDevice}
+                        isEditMode={isEditMode}
+                        isSelected={selectedElement === 'orderDescription'}
+                        onSelect={handleElementSelect}
+                        lang={lang}
+                      />
+                    </p>
+                    <div className="flex items-center gap-8 mb-8 border-y border-zinc-800 py-6">
+                      <div>
+                        <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">{lang === 'en' ? 'Valuation' : '估值'}</div>
+                        <div className="display-font text-xl font-black">
+                          {isEditMode ? (
+                            <input
+                              type="number"
+                              step="0.01"
+                              value={config.artwork.price}
+                              onChange={e => setConfig(prev => ({ ...prev, artwork: { ...prev.artwork, price: parseFloat(e.target.value) || 0 } }))}
+                              onClick={e => e.stopPropagation()}
+                              className="bg-transparent border-b border-zinc-600 w-20 focus:outline-none focus:border-blue-500"
+                            />
+                          ) : config.artwork.price} ETH
+                        </div>
+                      </div>
+                      <div>
+                        <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">{lang === 'en' ? 'Edition' : '版本'}</div>
+                        <div className="display-font text-xl font-black">
+                          {isEditMode ? (
+                            <input
+                              type="text"
+                              value={config.artwork.edition}
+                              onChange={e => setConfig(prev => ({ ...prev, artwork: { ...prev.artwork, edition: e.target.value } }))}
+                              onClick={e => e.stopPropagation()}
+                              className="bg-transparent border-b border-zinc-600 w-20 focus:outline-none focus:border-blue-500"
+                            />
+                          ) : config.artwork.edition}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="bg-black/50 border border-zinc-800 p-4">
+                      <label className="text-[9px] text-zinc-600 block mb-2 uppercase tracking-[0.2em]">{lang === 'en' ? 'Collector_Identifier' : '收藏家標識符'}</label>
+                      <input type="text" placeholder={lang === 'en' ? "WALLET_ADDRESS_OR_EMAIL" : "錢包地址或電子郵件"} className="w-full bg-transparent border-b border-zinc-700 py-2 text-xs focus:outline-none focus:border-white transition-colors" />
+                    </div>
                     <button
+                      className="w-full py-6 font-black uppercase transition-all relative group overflow-hidden editable-element"
+                      style={{
+                        backgroundColor: deviceConfig.elements.ctaButton.bgColor,
+                        color: deviceConfig.elements.ctaButton.color,
+                        fontSize: `${deviceConfig.elements.ctaButton.fontSize}px`,
+                        fontFamily: lang === 'zh' ? deviceConfig.elements.ctaButton.fontFamilyZh : deviceConfig.elements.ctaButton.fontFamily,
+                        letterSpacing: '0.5em',
+                        transform: `translate(${deviceConfig.elements.ctaButton.offsetX}px, ${deviceConfig.elements.ctaButton.offsetY}px)`
+                      }}
                       onClick={(e) => {
-                        e.stopPropagation();
-                        const url = prompt('輸入媒體 URL:\n\n支援格式:\n• 圖片網址 (jpg, png, gif...)\n• 影片網址 (mp4, webm...)\n• YouTube 連結 (自動識別)\n• YouTube Shorts 連結', config.layout.mediaUrl);
-                        if (url) {
-                          const isYouTube = getYouTubeVideoId(url) !== null;
-                          let isVideo = isYouTube;
-                          if (!isYouTube) {
-                            isVideo = confirm('這是影片檔案嗎？\n\n（YouTube 連結會自動識別，不需確認）');
-                          }
-                          setConfig(prev => ({
-                            ...prev,
-                            layout: { ...prev.layout, mediaUrl: url, isMediaVideo: isVideo }
-                          }));
+                        if (isEditMode) {
+                          e.stopPropagation();
+                          const rect = e.target.getBoundingClientRect();
+                          handleElementSelect('ctaButton', { x: rect.left, y: rect.bottom + 10 });
                         }
                       }}
-                      className="px-3 py-2 bg-blue-600 text-white text-xs rounded hover:bg-blue-700 font-bold"
                     >
-                      更換媒體
+                      <span className="relative z-10">{lang === 'zh' ? config.texts.ctaButton.zh : config.texts.ctaButton.en}</span>
+                      <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
                     </button>
-                  </div>
-                )}
-              </div>
-            </section>
-
-            {/* Order Section */}
-            <section className="w-full max-w-4xl glass-morphism p-12 mb-24 relative overflow-hidden">
-              <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                <svg width="200" height="200" viewBox="0 0 100 100">
-                  <circle cx="50" cy="50" r="40" fill="none" stroke="white" strokeWidth="0.5" strokeDasharray="2 2" />
-                  <path d="M10 50 L90 50 M50 10 L50 90" stroke="white" strokeWidth="0.5" />
-                </svg>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-12 items-center">
-                <div>
-                  <h2 className="mb-6 italic font-bold">
-                    <EditableText
-                      elementKey="orderTitle"
-                      config={config}
-                      isEditMode={isEditMode}
-                      isSelected={selectedElement === 'orderTitle'}
-                      onSelect={handleElementSelect}
-                      lang={lang}
-                      as="span"
-                    />
-                  </h2>
-                  <p className="mb-8 font-light italic leading-relaxed">
-                    <EditableText
-                      elementKey="orderDescription"
-                      config={config}
-                      isEditMode={isEditMode}
-                      isSelected={selectedElement === 'orderDescription'}
-                      onSelect={handleElementSelect}
-                      lang={lang}
-                      as="span"
-                    />
-                  </p>
-                  <div className="flex items-center gap-8 mb-8 border-y border-zinc-800 py-6">
-                    <div>
-                      <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">{lang === 'en' ? 'Valuation' : '估值'}</div>
-                      <div className="display-font text-xl font-black">
-                        {isEditMode ? (
-                          <input
-                            type="number"
-                            step="0.01"
-                            value={config.artwork.price}
-                            onChange={e => setConfig(prev => ({ ...prev, artwork: { ...prev.artwork, price: parseFloat(e.target.value) || 0 } }))}
-                            onClick={e => e.stopPropagation()}
-                            className="bg-transparent border-b border-zinc-600 w-20 focus:outline-none focus:border-blue-500"
-                          />
-                        ) : config.artwork.price} ETH
-                      </div>
-                    </div>
-                    <div>
-                      <div className="text-[9px] text-zinc-500 uppercase tracking-widest mb-1">{lang === 'en' ? 'Edition' : '版本'}</div>
-                      <div className="display-font text-xl font-black">
-                        {isEditMode ? (
-                          <input
-                            type="text"
-                            value={config.artwork.edition}
-                            onChange={e => setConfig(prev => ({ ...prev, artwork: { ...prev.artwork, edition: e.target.value } }))}
-                            onClick={e => e.stopPropagation()}
-                            className="bg-transparent border-b border-zinc-600 w-20 focus:outline-none focus:border-blue-500"
-                          />
-                        ) : config.artwork.edition}
-                      </div>
-                    </div>
+                    <p className="text-[8px] text-center text-zinc-600 uppercase tracking-widest">
+                      {lang === 'en' ? 'All sales are final. Transactions secured via smart contract.' : '所有銷售均為最終銷售。交易通過智能合約擔保。'}
+                    </p>
                   </div>
                 </div>
+              </section>
 
-                <div className="space-y-4">
-                  <div className="bg-black/50 border border-zinc-800 p-4">
-                    <label className="text-[9px] text-zinc-600 block mb-2 uppercase tracking-[0.2em]">{lang === 'en' ? 'Collector_Identifier' : '收藏家標識符'}</label>
-                    <input type="text" placeholder={lang === 'en' ? "WALLET_ADDRESS_OR_EMAIL" : "錢包地址或電子郵件"} className="w-full bg-transparent border-b border-zinc-700 py-2 text-xs focus:outline-none focus:border-white transition-colors" />
+              {/* Footer */}
+              <footer className={`w-full border-t border-zinc-900 pt-12 pb-24 flex flex-col md:flex-row justify-between items-start gap-8 ${isEditMode ? '' : 'opacity-40'}`}>
+                <div className="max-w-xs">
+                  <div className="mb-4">
+                    <EditableText
+                      elementKey="footerBrand"
+                      config={config}
+                      deviceMode={activeDevice}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'footerBrand'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                      className="font-bold"
+                    />
                   </div>
-                  <button
-                    className="w-full py-6 font-black uppercase transition-all relative group overflow-hidden editable-element"
-                    style={{
-                      backgroundColor: config.elements.ctaButton.bgColor,
-                      color: config.elements.ctaButton.color,
-                      fontSize: `${config.elements.ctaButton.fontSize}px`,
-                      fontFamily: lang === 'zh' ? config.elements.ctaButton.fontFamilyZh : config.elements.ctaButton.fontFamily,
-                      letterSpacing: '0.5em',
-                      transform: `translate(${config.elements.ctaButton.offsetX}px, ${config.elements.ctaButton.offsetY}px)`
-                    }}
-                    onClick={(e) => {
-                      if (isEditMode) {
-                        e.stopPropagation();
-                        const rect = e.target.getBoundingClientRect();
-                        handleElementSelect('ctaButton', { x: rect.left, y: rect.bottom + 10 });
-                      }
-                    }}
-                  >
-                    <span className="relative z-10">{lang === 'zh' ? config.elements.ctaButton.zh : config.elements.ctaButton.en}</span>
-                    <div className="absolute inset-0 bg-white translate-y-full group-hover:translate-y-0 transition-transform duration-300"></div>
-                  </button>
-                  <p className="text-[8px] text-center text-zinc-600 uppercase tracking-widest">
-                    {lang === 'en' ? 'All sales are final. Transactions secured via smart contract.' : '所有銷售均為最終銷售。交易通過智能合約擔保。'}
-                  </p>
+                  <div className="leading-relaxed italic">
+                    <EditableText
+                      elementKey="footerDescription"
+                      config={config}
+                      deviceMode={activeDevice}
+                      isEditMode={isEditMode}
+                      isSelected={selectedElement === 'footerDescription'}
+                      onSelect={handleElementSelect}
+                      lang={lang}
+                    />
+                  </div>
                 </div>
-              </div>
-            </section>
-
-            {/* Footer */}
-            <footer className={`w-full border-t border-zinc-900 pt-12 pb-24 flex flex-col md:flex-row justify-between items-start gap-8 ${isEditMode ? '' : 'opacity-40'}`}>
-              <div className="max-w-xs">
-                <div className="mb-4">
-                  <EditableText
-                    elementKey="footerBrand"
-                    config={config}
-                    isEditMode={isEditMode}
-                    isSelected={selectedElement === 'footerBrand'}
-                    onSelect={handleElementSelect}
-                    lang={lang}
-                    as="span"
-                    className="font-bold"
-                  />
+                <div className="grid grid-cols-2 gap-12 uppercase font-bold tracking-widest">
+                  <div className="flex flex-col gap-2">
+                    <a href="#" className="hover:text-white transition-colors">
+                      <EditableText
+                        elementKey="footerLink1"
+                        config={config}
+                        deviceMode={activeDevice}
+                        isEditMode={isEditMode}
+                        isSelected={selectedElement === 'footerLink1'}
+                        onSelect={handleElementSelect}
+                        lang={lang}
+                      />
+                    </a>
+                    <a href="#" className="hover:text-white transition-colors">
+                      <EditableText
+                        elementKey="footerLink2"
+                        config={config}
+                        deviceMode={activeDevice}
+                        isEditMode={isEditMode}
+                        isSelected={selectedElement === 'footerLink2'}
+                        onSelect={handleElementSelect}
+                        lang={lang}
+                      />
+                    </a>
+                    <a href="#" className="hover:text-white transition-colors">
+                      <EditableText
+                        elementKey="footerLink3"
+                        config={config}
+                        deviceMode={activeDevice}
+                        isEditMode={isEditMode}
+                        isSelected={selectedElement === 'footerLink3'}
+                        onSelect={handleElementSelect}
+                        lang={lang}
+                      />
+                    </a>
+                  </div>
+                  <div className="flex flex-col gap-2">
+                    <a href="#" className="hover:text-white transition-colors">
+                      <EditableText
+                        elementKey="footerLink4"
+                        config={config}
+                        deviceMode={activeDevice}
+                        isEditMode={isEditMode}
+                        isSelected={selectedElement === 'footerLink4'}
+                        onSelect={handleElementSelect}
+                        lang={lang}
+                      />
+                    </a>
+                    <a href="#" className="hover:text-white transition-colors">
+                      <EditableText
+                        elementKey="footerLink5"
+                        config={config}
+                        deviceMode={activeDevice}
+                        isEditMode={isEditMode}
+                        isSelected={selectedElement === 'footerLink5'}
+                        onSelect={handleElementSelect}
+                        lang={lang}
+                      />
+                    </a>
+                    <a href="#" className="hover:text-white transition-colors">
+                      <EditableText
+                        elementKey="footerLink6"
+                        config={config}
+                        deviceMode={activeDevice}
+                        isEditMode={isEditMode}
+                        isSelected={selectedElement === 'footerLink6'}
+                        onSelect={handleElementSelect}
+                        lang={lang}
+                      />
+                    </a>
+                  </div>
                 </div>
-                <div className="leading-relaxed italic">
-                  <EditableText
-                    elementKey="footerDescription"
-                    config={config}
-                    isEditMode={isEditMode}
-                    isSelected={selectedElement === 'footerDescription'}
-                    onSelect={handleElementSelect}
-                    lang={lang}
-                    as="span"
-                  />
-                </div>
-              </div>
-              <div className="grid grid-cols-2 gap-12 uppercase font-bold tracking-widest">
-                <div className="flex flex-col gap-2">
-                  <a href="#" className="hover:text-white transition-colors">
-                    <EditableText
-                      elementKey="footerLink1"
-                      config={config}
-                      isEditMode={isEditMode}
-                      isSelected={selectedElement === 'footerLink1'}
-                      onSelect={handleElementSelect}
-                      lang={lang}
-                      as="span"
-                    />
-                  </a>
-                  <a href="#" className="hover:text-white transition-colors">
-                    <EditableText
-                      elementKey="footerLink2"
-                      config={config}
-                      isEditMode={isEditMode}
-                      isSelected={selectedElement === 'footerLink2'}
-                      onSelect={handleElementSelect}
-                      lang={lang}
-                      as="span"
-                    />
-                  </a>
-                  <a href="#" className="hover:text-white transition-colors">
-                    <EditableText
-                      elementKey="footerLink3"
-                      config={config}
-                      isEditMode={isEditMode}
-                      isSelected={selectedElement === 'footerLink3'}
-                      onSelect={handleElementSelect}
-                      lang={lang}
-                      as="span"
-                    />
-                  </a>
-                </div>
-                <div className="flex flex-col gap-2">
-                  <a href="#" className="hover:text-white transition-colors">
-                    <EditableText
-                      elementKey="footerLink4"
-                      config={config}
-                      isEditMode={isEditMode}
-                      isSelected={selectedElement === 'footerLink4'}
-                      onSelect={handleElementSelect}
-                      lang={lang}
-                      as="span"
-                    />
-                  </a>
-                  <a href="#" className="hover:text-white transition-colors">
-                    <EditableText
-                      elementKey="footerLink5"
-                      config={config}
-                      isEditMode={isEditMode}
-                      isSelected={selectedElement === 'footerLink5'}
-                      onSelect={handleElementSelect}
-                      lang={lang}
-                      as="span"
-                    />
-                  </a>
-                  <a href="#" className="hover:text-white transition-colors">
-                    <EditableText
-                      elementKey="footerLink6"
-                      config={config}
-                      isEditMode={isEditMode}
-                      isSelected={selectedElement === 'footerLink6'}
-                      onSelect={handleElementSelect}
-                      lang={lang}
-                      as="span"
-                    />
-                  </a>
-                </div>
-              </div>
-            </footer>
-          </main>
+              </footer>
+            </main>
+          </ContentWrapper>
 
           {/* Password Modal */}
           {isAuthModalOpen && (
@@ -1336,17 +1416,18 @@
           {/* Floating Toolbar */}
           {isEditMode && selectedElement && (
             <FloatingToolbar
-              element={selectedElement}
               elementKey={selectedElement}
               config={config}
+              deviceMode={deviceMode}
               updateElement={updateElement}
+              updateText={updateText}
               position={toolbarPosition}
               onClose={handleCloseToolbar}
               lang={lang}
             />
           )}
 
-          {/* Admin Button (only when not in edit mode) */}
+          {/* Admin Button */}
           {!isEditMode && (
             <button
               onClick={handleAdminInit}
